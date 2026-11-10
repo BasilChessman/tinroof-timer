@@ -1,0 +1,264 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' file:; img-src 'self' data:">
+<title>TinRoof Timer</title>
+<link rel="stylesheet" href="display.css">
+<link rel="stylesheet" href="control.css">
+</head>
+<body>
+<div class="app">
+  <!-- LEFT: preview + status + transport -->
+  <section class="col-left">
+    <div class="preview-wrap">
+      <div id="preview" class="preview"></div>
+      <div class="preview-tag" id="previewTag">OUTPUT</div>
+    </div>
+
+    <div class="status">
+      <div class="stat stat-main">
+        <div class="stat-label">Remaining</div>
+        <div class="stat-value" id="stRemaining">--:--:--</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Elapsed</div>
+        <div class="stat-value small" id="stElapsed">00:00:00</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Ends at</div>
+        <div class="stat-value small" id="stEnd">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Time of day</div>
+        <div class="stat-value small" id="stClock">—</div>
+      </div>
+      <div class="state-pill" id="statePill">STOPPED</div>
+    </div>
+
+    <div class="transport">
+      <button id="btnGo" class="btn btn-go" title="Space">▶ GO</button>
+      <button id="btnReset" class="btn btn-reset" title="R">↺ RESET</button>
+    </div>
+
+    <div class="jog">
+      <span class="group-label">Jog</span>
+      <button class="btn btn-jog" data-jog="-300">−5m</button>
+      <button class="btn btn-jog" data-jog="-60">−1m</button>
+      <button class="btn btn-jog" data-jog="-10">−10s</button>
+      <button class="btn btn-jog" data-jog="10">+10s</button>
+      <button class="btn btn-jog" data-jog="60">+1m</button>
+      <button class="btn btn-jog" data-jog="300">+5m</button>
+    </div>
+  </section>
+
+  <!-- RIGHT: time entry, presets, display mode, message -->
+  <section class="col-right">
+    <div class="seg right-tabs" id="rightTabs">
+      <button data-rtab="speakers">Speakers</button>
+      <button data-rtab="time">Time &amp; Presets</button>
+    </div>
+
+    <div class="rtab" data-rtab="speakers">
+      <div class="panel panel-speakers">
+        <div class="panel-title">
+          <span>Speakers <span class="hint" id="spkCount"></span></span>
+          <span class="hint">click to start · Shift-click to cue</span>
+        </div>
+        <div class="spk-list" id="spkList"></div>
+        <div class="spk-buttons">
+          <button id="btnSpkPrev" class="btn btn-small" title="Start previous speaker">◀ Prev</button>
+          <button id="btnSpkNext" class="btn btn-small btn-accent" title="Start next speaker (N)">Next ▶</button>
+          <span class="spacer"></span>
+          <button id="btnSpkClear" class="btn btn-small" title="Clear the ✓ marks">Clear ✓</button>
+          <button id="btnSpkEdit" class="btn btn-small">Edit list…</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="rtab" data-rtab="time" hidden>
+      <div class="panel">
+        <div class="panel-title">
+          <span>Set time</span>
+          <span class="seg seg-mini" id="entryMode">
+            <button data-entry="duration">Duration</button>
+            <button data-entry="until">Until time of day</button>
+          </span>
+        </div>
+        <div class="time-entry" id="entryDuration">
+          <input id="inH" type="number" min="0" max="99" value="0" aria-label="Hours"><span>h</span>
+          <input id="inM" type="number" min="0" max="59" value="5" aria-label="Minutes"><span>m</span>
+          <input id="inS" type="number" min="0" max="59" value="0" aria-label="Seconds"><span>s</span>
+          <button class="btn btn-set">Set</button>
+          <button class="btn btn-accent btn-setgo">Set &amp; Go</button>
+        </div>
+        <div class="time-entry" id="entryUntil" hidden>
+          <input id="inUntil" type="time" step="1" aria-label="End time of day">
+          <span class="until-hint" id="untilHint"></span>
+          <button class="btn btn-set">Set</button>
+          <button class="btn btn-accent btn-setgo">Set &amp; Go</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Presets <span class="hint">click to load · <span id="modKey">Ctrl</span>-click to save the Set time value</span></div>
+        <div class="presets" id="presets"></div>
+        <div class="toast" id="presetToast" hidden></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Display</div>
+      <div class="seg" id="modeSeg">
+        <button data-mode="TIMER">Timer</button>
+        <button data-mode="CLOCK">Clock</button>
+        <button data-mode="BLACK">Black</button>
+        <button data-mode="TEST">Test</button>
+      </div>
+    </div>
+
+    <div class="panel panel-msg">
+      <div class="panel-title">Message <span class="hint" id="msgCount">0/90</span></div>
+      <textarea id="msgText" maxlength="90" rows="2" placeholder="Type a message for the speaker… (Enter to send)"></textarea>
+      <div class="msg-buttons">
+        <button id="btnMsgSend" class="btn btn-accent">Send</button>
+        <button id="btnMsgFlash" class="btn">Flash</button>
+        <button id="btnMsgClear" class="btn">Clear</button>
+        <span class="msg-live" id="msgLive"></span>
+      </div>
+      <div class="quick" id="quickMsgs"></div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="net" id="netInfo">Network: starting…</div>
+    <div class="footer-buttons">
+      <button id="btnOutput" class="btn btn-small">Hide output</button>
+      <button id="btnSettings" class="btn btn-small">⚙ Settings</button>
+      <button id="btnAbout" class="btn btn-small">About</button>
+    </div>
+  </footer>
+</div>
+
+<!-- SETTINGS DIALOG -->
+<dialog id="dlgSettings" class="dialog">
+  <form method="dialog" class="dlg-inner">
+    <header class="dlg-head">
+      <h2>Settings</h2>
+      <nav class="tabs" id="tabs">
+        <button type="button" data-tab="timer" class="active">Timer</button>
+        <button type="button" data-tab="display">Display</button>
+        <button type="button" data-tab="speakers">Speakers</button>
+        <button type="button" data-tab="presets">Presets &amp; Messages</button>
+        <button type="button" data-tab="sounds">Sounds</button>
+        <button type="button" data-tab="network">Network</button>
+      </nav>
+    </header>
+    <div class="dlg-body">
+      <div class="tab" data-tab="timer">
+        <label class="row"><input type="checkbox" data-k="alwaysShowHours"> Always show hours</label>
+        <label class="row"><input type="checkbox" data-k="stopAtZero"> Stop at zero (otherwise counts into overtime)</label>
+        <label class="row"><input type="checkbox" data-k="flashOvertime"> Flash timer when overtime</label>
+        <label class="row">Overtime prefix
+          <select data-k="overtimeSign"><option value="-">− (minus)</option><option value="+">+ (plus)</option><option value="">none</option></select>
+        </label>
+        <div class="row grid2">
+          <label>Amber at (mm:ss remaining) <input type="text" data-k="amberSeconds" data-fmt="mmss" class="w-small"></label>
+          <label>Red at (mm:ss remaining) <input type="text" data-k="redSeconds" data-fmt="mmss" class="w-small"></label>
+        </div>
+        <label class="row"><input type="checkbox" data-k="whiteOnly"> Timer text is white only (no warning colours)</label>
+        <div class="row colors">
+          <label>Normal <input type="color" data-k="colorNormal"></label>
+          <label>Amber <input type="color" data-k="colorAmber"></label>
+          <label>Red <input type="color" data-k="colorRed"></label>
+          <label>White / clock <input type="color" data-k="colorWhite"></label>
+        </div>
+        <p class="note">Tip: set a duration of 0 to run as a stopwatch (counts up).</p>
+      </div>
+
+      <div class="tab" data-tab="display" hidden>
+        <label class="row">Output display <select data-k="outputDisplay" id="selDisplay"></select></label>
+        <label class="row"><input type="checkbox" data-k="hideDisplay"> Hide output display (web view / remote displays only)</label>
+        <label class="row"><input type="checkbox" data-k="showProgressBar"> Show progress bar</label>
+        <label class="row"><input type="checkbox" data-k="showClockWithTimer"> Show clock (in timer mode)</label>
+        <label class="row"><input type="checkbox" data-k="showEndTime"> Show end time (in timer mode)</label>
+        <label class="row"><input type="checkbox" data-k="clock24h"> 24-hour clock</label>
+        <label class="row"><input type="checkbox" data-k="clockSeconds"> Show seconds on clock</label>
+        <label class="row"><input type="checkbox" data-k="messageFlash"> Flash messages when they appear</label>
+        <label class="row">Font
+          <select data-k="fontFamily"><option value="system">System</option><option value="mono">Monospace</option><option value="condensed">Condensed</option><option value="rounded">Rounded</option><option value="verdana">Verdana</option></select>
+        </label>
+        <div class="row colors">
+          <label>Background colour <input type="color" data-k="backgroundColor"></label>
+          <label><input type="checkbox" data-k="transparentBackground"> Transparent background</label>
+        </div>
+        <label class="row">Brightness <input type="range" min="10" max="100" step="5" data-k="brightness"> <span id="brightVal"></span></label>
+      </div>
+
+      <div class="tab" data-tab="speakers" hidden>
+        <p class="note">Each speaker gets a duration, or an end time of day (counts down to that clock time). Click a speaker in the main window to start their countdown.</p>
+        <div class="spk-edit-head"><span></span><span>Name</span><span>Type</span><span>Time</span><span></span></div>
+        <div class="spk-edit" id="spkEdit"></div>
+        <div class="row spk-edit-buttons">
+          <button type="button" class="btn btn-small" id="btnSpkAdd">+ Add speaker</button>
+          <button type="button" class="btn btn-small" id="btnSpkImport">Import CSV…</button>
+          <button type="button" class="btn btn-small" id="btnSpkExport">Export CSV…</button>
+          <span class="spacer"></span>
+          <button type="button" class="btn btn-small" id="btnSpkDeleteAll">Delete all</button>
+        </div>
+        <p class="note">CSV format: <code>name, time</code> per line. Time is minutes (<code>10</code>), <code>m:ss</code>, <code>h:mm:ss</code>, or an end time like <code>@10:30</code>.</p>
+        <h3>On the output</h3>
+        <label class="row"><input type="checkbox" data-k="showSpeakerName"> Show current speaker's name</label>
+        <label class="row"><input type="checkbox" data-k="showNextSpeaker"> Show "Next: …" speaker</label>
+      </div>
+
+      <div class="tab" data-tab="presets" hidden>
+        <div class="preset-edit" id="presetEdit"></div>
+        <h3>Quick messages</h3>
+        <textarea id="quickEdit" rows="6" placeholder="One message per line"></textarea>
+      </div>
+
+      <div class="tab" data-tab="sounds" hidden>
+        <p class="note">Play an audio file when the remaining time reaches a value. Use a negative time (e.g. -0:30) to trigger in overtime.</p>
+        <div class="sounds" id="soundList"></div>
+        <button type="button" class="btn btn-small" id="btnSoundAdd">+ Add sound</button>
+      </div>
+
+      <div class="tab" data-tab="network" hidden>
+        <div class="row grid2">
+          <label>TCP control port <input type="number" data-k="tcpPort" min="1" max="65535" class="w-small"></label>
+          <label>Web view port <input type="number" data-k="webPort" min="1" max="65535" class="w-small"></label>
+        </div>
+        <label class="row"><input type="checkbox" data-k="udpBroadcast"> UDP broadcast for remote displays (port 61003)</label>
+        <label class="row">Remote display id <input type="number" data-k="udpId" min="0" max="15" class="w-small"></label>
+        <label class="row"><input type="checkbox" data-k="hiveBroadcast"> CDEther / Hive receiver broadcast (port 36700)</label>
+        <label class="row"><input type="checkbox" data-k="ssdp"> Advertise web view on the network (UPnP / SSDP)</label>
+        <label class="row"><input type="checkbox" data-k="loadAtStartup"> Launch at login</label>
+        <label class="row"><input type="checkbox" data-k="alwaysOnTopControl"> Keep control window on top</label>
+        <div class="net-detail" id="netDetail"></div>
+      </div>
+    </div>
+    <footer class="dlg-foot">
+      <button type="button" class="btn btn-small" id="btnDefaults">Load defaults…</button>
+      <span class="spacer"></span>
+      <button class="btn btn-accent" value="close">Done</button>
+    </footer>
+  </form>
+</dialog>
+
+<dialog id="dlgAbout" class="dialog dialog-small">
+  <form method="dialog" class="dlg-inner">
+    <div class="dlg-body about">
+      <h2>TinRoof Timer</h2>
+      <p id="aboutVersion"></p>
+      <p>A cross-platform countdown timer for show operators. Remote control over TCP is compatible with the Irisdown Countdown Timer 2.0 protocol, so it works with the Bitfocus Companion module “Irisdown: Countdown Timer” as well as the dedicated TinRoof Timer module.</p>
+      <p class="note">Not affiliated with Irisdown.</p>
+    </div>
+    <footer class="dlg-foot"><span class="spacer"></span><button class="btn btn-accent">OK</button></footer>
+  </form>
+</dialog>
+
+<script src="display.js"></script>
+<script src="control.js"></script>
+</body>
+</html>
