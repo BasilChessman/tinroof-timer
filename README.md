@@ -2,6 +2,19 @@
 
 A countdown timer for show operators that runs on Windows and macOS. It speaks the **Irisdown Countdown Timer 2.0 remote-control protocol**, so it works with the existing Bitfocus Companion module *Irisdown: Countdown Timer* without changes. It also comes with its own Companion module that adds more variables and actions.
 
+## ⬇ Download
+
+**[Latest release →](https://github.com/BasilChessman/tinroof-timer/releases/latest)**
+
+| Platform | File |
+|---|---|
+| Windows installer (recommended) | [TinRoof-Timer-Setup-1.1.0.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.0/TinRoof-Timer-Setup-1.1.0.exe) |
+| Windows portable (no install) | [TinRoof-Timer-1.1.0-Portable.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.0/TinRoof-Timer-1.1.0-Portable.exe) |
+| macOS (Apple Silicon and Intel) | [TinRoof-Timer-1.1.0-macOS-Universal.dmg](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.0/TinRoof-Timer-1.1.0-macOS-Universal.dmg) |
+| Bitfocus Companion module (optional) | [tinroof-timer-companion-module-1.1.0.tgz](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.0/tinroof-timer-companion-module-1.1.0.tgz) |
+
+The builds aren't code-signed yet. On Windows, click **More info → Run anyway** the first time. On a Mac, right-click the app and choose **Open**. The [release notes](https://github.com/BasilChessman/tinroof-timer/releases/latest) explain which file to pick.
+
 ## Features
 
 | | Irisdown 2.0.17 | TinRoof Timer |
