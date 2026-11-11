@@ -16,6 +16,7 @@ export function getVariables() {
 		{ variableId: 'elapsed', name: 'Elapsed time (hh:mm:ss) — TinRoof Timer' },
 		{ variableId: 'duration', name: 'Set duration (hh:mm:ss) — TinRoof Timer' },
 		{ variableId: 'end_time', name: 'Expected end time of day — TinRoof Timer' },
+		{ variableId: 'end_time_hm', name: 'Expected end time of day, 12-hour without seconds (e.g. 5:00 PM) — TinRoof Timer' },
 		{ variableId: 'warning', name: 'Warning level (GREEN, AMBER, RED, OVER)' },
 		{ variableId: 'progress', name: 'Progress percent (0-100) — TinRoof Timer' },
 		{ variableId: 'message_active', name: 'Message on screen (true/false)' },

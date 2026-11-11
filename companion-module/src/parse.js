@@ -103,6 +103,14 @@ export function toSeconds(hms) {
 	return h * 3600 + m * 60 + s
 }
 
+/** "17:05:30" -> "5:05 PM" (seconds dropped); empty in, empty out. */
+export function clock12(hms) {
+	const [h, m] = String(hms || '').split(':')
+	if (!h || m === undefined) return ''
+	const hour = parseInt(h, 10)
+	return `${hour % 12 || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`
+}
+
 /** Build the Companion variable values from a state object. */
 export function variableValues(st, connected = true) {
 	const [h = '00', m = '00', s = '00'] = st.time.split(':')
@@ -127,6 +135,7 @@ export function variableValues(st, connected = true) {
 		elapsed: st.elapsed,
 		duration: st.duration,
 		end_time: st.end,
+		end_time_hm: clock12(st.end),
 		warning: st.warn,
 		progress: st.progress,
 		message_active: !!st.message,

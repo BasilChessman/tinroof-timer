@@ -19,4 +19,4 @@ Warning level is… · Traffic-light colours by warning level · Overtime
 ## Variables
 `state`, `mode`, `time`, `time_hm`, `time_h`, `time_m`, `time_s` (same as the Irisdown module), plus
 `state_raw`, `time_signed`, `time_ms`, `time_short`, `remaining_seconds`, `overtime`, `elapsed`, `duration`,
-`end_time`, `warning`, `progress`, `message_active`, `message`, `stopwatch`, `connected`.
+`end_time`, `end_time_hm`, `warning`, `progress`, `message_active`, `message`, `stopwatch`, `connected`.

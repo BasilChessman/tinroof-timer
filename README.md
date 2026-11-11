@@ -11,7 +11,7 @@ A countdown timer for show operators that runs on Windows and macOS. It speaks t
 | Windows installer (recommended) | [TinRoof-Timer-Setup-1.1.2.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.2/TinRoof-Timer-Setup-1.1.2.exe) |
 | Windows portable (no install) | [TinRoof-Timer-1.1.2-Portable.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.2/TinRoof-Timer-1.1.2-Portable.exe) |
 | macOS (Apple Silicon and Intel) | [TinRoof-Timer-1.1.2-macOS-Universal.dmg](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.2/TinRoof-Timer-1.1.2-macOS-Universal.dmg) |
-| Bitfocus Companion module (optional) | [tinroof-timer-companion-module-1.1.0.tgz](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.2/tinroof-timer-companion-module-1.1.0.tgz) |
+| Bitfocus Companion module (optional) | [tinroof-timer-companion-module-1.2.0.tgz](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.2/tinroof-timer-companion-module-1.2.0.tgz) |
 
 The builds aren't code-signed yet. On Windows, click **More info → Run anyway** the first time. On a Mac, right-click the app and choose **Open**. The [release notes](https://github.com/BasilChessman/tinroof-timer/releases/latest) explain which file to pick.
 
@@ -85,12 +85,12 @@ There are two options:
 
 1. **The existing module.** Add *Irisdown: Countdown Timer* and enter this computer's IP address. All of its actions, feedbacks and variables (`state`, `mode`, `time`, `time_hm`, `time_h`, `time_m`, `time_s`) work.
 2. **The TinRoof Timer module** in `companion-module/`. It keeps the Irisdown action and variable IDs and adds more:
-   - Variables: `time_signed`, `time_ms`, `time_short`, `remaining_seconds`, `overtime`, `elapsed`, `duration`, `end_time`, `warning`, `progress`, `message`, `message_active`, `stopwatch`, `target_time`, `countdown_to_time`, `speaker_name`, `speaker_number`, `next_speaker_name`, `next_speaker_number`, `speaker_count`, `connected`, plus `speaker_<n>_name`, `speaker_<n>_time` and `speaker_<n>_done` for every speaker in the list (at least 20)
+   - Variables: `time_signed`, `time_ms`, `time_short`, `remaining_seconds`, `overtime`, `elapsed`, `duration`, `end_time`, `end_time_hm`, `warning`, `progress`, `message`, `message_active`, `stopwatch`, `target_time`, `countdown_to_time`, `speaker_name`, `speaker_number`, `next_speaker_name`, `next_speaker_number`, `speaker_count`, `connected`, plus `speaker_<n>_name`, `speaker_<n>_time` and `speaker_<n>_done` for every speaker in the list (at least 20)
    - Actions: set duration and start, jog in seconds, load preset, flash message, count down to a time of day, start or cue a speaker by number, next and previous speaker, custom command
    - Feedbacks: warning level, traffic-light colours, overtime, counting to a time of day, speaker is current, next or done
    - 86 presets, including 20 speaker buttons that show each speaker's name and time and light up when that speaker is live
 
-   To install it, run `cd companion-module && npm install && npm run package`, then import `tinroof-timer-1.1.0.tgz` in Companion under *Modules → Import module package*.
+   To install it, run `cd companion-module && npm install && npm run package`, then import `tinroof-timer-1.2.0.tgz` in Companion under *Modules → Import module package*.
 
 ## Build
 

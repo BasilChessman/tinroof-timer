@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { parseUpdate, parseSpeakers, speakerSlotValues, variableValues, emptyState } from '../src/parse.js'
+import { parseUpdate, parseSpeakers, speakerSlotValues, variableValues, emptyState, clock12 } from '../src/parse.js'
 
 test('mode 1', () => {
 	assert.deepEqual(parseUpdate('00:10:00 STOPPED TIMER'), { time: '00:10:00', sign: '+', state: 'STOPPED', mode: 'TIMER', seconds: 600 })
@@ -24,6 +24,11 @@ test('mode 3 + variables', () => {
 	assert.equal(v.message, 'Wrap up & go')
 	assert.equal(v.progress, 14)
 	assert.equal(v.end_time, '17:00:00')
+	assert.equal(v.end_time_hm, '5:00 PM')
+	assert.equal(clock12('00:15:59'), '12:15 AM')
+	assert.equal(clock12('12:30:00'), '12:30 PM')
+	assert.equal(clock12('09:05:00'), '9:05 AM')
+	assert.equal(variableValues(emptyState()).end_time_hm, '')
 })
 
 test('mode 3 speaker + target fields and SPEAKERS list', () => {
