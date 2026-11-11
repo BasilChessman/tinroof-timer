@@ -59,7 +59,6 @@ function buildView(snap, s, now = new Date(), speaker = {}) {
 		timerText,
 		held,
 		stageText: held ? formatTimer({ ...snap, seconds: 0, overtime: false }, s) : timerText,
-		stageOvertime: !!snap.overtime && !held,
 		clockText: formatClock(now, s),
 		endText: snap.endTime ? formatClock(new Date(snap.endTime), s) : '',
 		targetText: snap.target ? formatClock(new Date(snap.target), s) : '',

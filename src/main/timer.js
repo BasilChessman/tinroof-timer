@@ -4,10 +4,10 @@
 
 const { EventEmitter } = require('node:events')
 
-const MAX_MS = (99 * 3600 + 59 * 60 + 59) * 1000 // 99:59:59, same ceiling as Irisdown
+const MAX_MS = (99 * 3600 + 59 * 60 + 59) * 1000 // 99:59:59
 const STATES = Object.freeze({ STOPPED: 'STOPPED', PLAYING: 'PLAYING', PAUSED: 'PAUSED' })
 const MODES = Object.freeze(['TIMER', 'CLOCK', 'BLACK', 'TEST'])
-const MESSAGE_MAX = 90 // Irisdown truncates messages over 90 characters
+const MESSAGE_MAX = 90 // longer messages are truncated
 
 function pad2(n) {
 	return String(n).padStart(2, '0')
@@ -26,7 +26,7 @@ function hms(totalSeconds) {
 }
 
 /**
- * Parse a duration the way Irisdown's RESET does: integer minutes ("25"),
+ * Parse a duration for RESET / START: integer minutes ("25"),
  * hh:mm ("01:30") or hh:mm:ss ("00:05:30"). Returns ms or null when invalid.
  */
 function parseDuration(text) {
@@ -274,7 +274,7 @@ class TimerEngine extends EventEmitter {
 	}
 
 	/**
-	 * Add (or remove) time from the remaining time. Mirrors Irisdown's JOG:
+	 * Add (or remove) time from the remaining time. 
 	 * result must stay > 0 and <= 99:59:59, otherwise the jog is ignored.
 	 */
 	jog(deltaMs) {

@@ -1,34 +1,23 @@
 'use strict'
-// Irisdown Countdown Timer 2.0 remote-control protocol (TCP 61002), reimplemented
-// from the published protocol PDF and the shipped 2.0.17 binary's command parser.
+// TinRoof Timer remote-control protocol (TCP 61002).
 //
-// Compatibility notes (verified against Countdown Timer 2.0.17's ParsePacket):
-//  - Commands are space-separated, case-insensitive; EOL may be \r, \n or \r\n.
-//  - Replies: "OK", "IGNORED" (out of context) or "ERROR" (bad syntax), CRLF terminated.
-//  - "PLAY" is an undocumented alias of GO.
-//  - While UPDATES is ON, every other reply is suppressed.
-//  - MESSAGE strips one pair of surrounding "double" or 'single' quotes.
-//  - JOG accepts integer minutes in -60..60 and is IGNORED if the result would be <= 0.
-//
-// Extensions (do not affect Irisdown clients):
-//  - UPDATEMODE 3: mode-2 fields plus extra fields for richer Companion variables.
-//  - JOGSEC <seconds>, START <time>, PRESET <1-9>, MESSAGE FLASH, APPVERSION, HELP.
-//  - TARGET <hh:mm[:ss]> / TARGETSTART <hh:mm[:ss]>: count down to a time of day.
-//  - SPEAKER <n|NEXT|PREV> loads and starts a speaker preset; CUE <n|NEXT|PREV> loads only.
-//  - In UPDATEMODE 3 the speaker list is pushed as "SPEAKERS=<url-encoded JSON>" when it changes.
+//  - Commands are one per line, space-separated and case-insensitive; EOL may be \r, \n or \r\n.
+//  - Every command gets a reply line: "OK", "IGNORED" (doesn't apply right now), "ERROR"
+//    (bad syntax) or a value (REMAINING, STATE, VERSION).
+//  - After UPDATES ON the client is also pushed, whenever something changes:
+//      STATE {json}     see stateJson() for the fields
+//      SPEAKERS [json]  the speaker list [{n, name, time, done}]
+//    Pushed lines start with STATE or SPEAKERS, so they can't be mistaken for replies.
 
 const { parseDuration, parseTimeOfDay, hms } = require('./timer')
-
-// Reported by VERSION. The Companion module enables UPDATEMODE 2 only when the
-// reported version is > 2.0.9.3, so we report an Irisdown-compatible level.
-const COMPAT_VERSION = '2.0.17.0'
+const { stageView } = require('./view')
 
 function clock(d) {
 	const p = (n) => String(n).padStart(2, '0')
 	return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
 }
 
-/** Mode-3 speaker list line: SPEAKERS=<url-encoded JSON [{n,name,time,done}]> */
+/** "SPEAKERS [{n, name, time, done}]": time is hh:mm:ss, or "@" + end time. */
 function speakersLine(list, doneIds = []) {
 	const done = new Set(doneIds)
 	const data = list.map((sp, i) => ({
@@ -37,38 +26,46 @@ function speakersLine(list, doneIds = []) {
 		time: sp.type === 'until' ? '@' + sp.until : hms(sp.seconds),
 		done: done.has(sp.id),
 	}))
-	return 'SPEAKERS=' + encodeURIComponent(JSON.stringify(data))
+	return 'SPEAKERS ' + JSON.stringify(data)
 }
 
-function modeLine(snap, updateMode, extra = {}) {
-	if (updateMode === 1) return `${snap.time} ${snap.state} ${snap.mode}`
-	let line =
-		`TIME=${snap.sign}${snap.time}&STATE=${snap.state}&DISPLAY=${snap.mode}` +
-		`&MESSAGE=${snap.message ? 'TRUE' : 'FALSE'}`
-	if (updateMode === 3) {
-		const endStr = snap.endTime ? clock(new Date(snap.endTime)) : ''
-		line +=
-			`&SECONDS=${snap.seconds}` +
-			`&ELAPSED=${snap.elapsed}` +
-			`&DURATION=${snap.duration}` +
-			`&END=${endStr}` +
-			`&WARN=${extra.warn ?? ''}` +
-			`&PROGRESS=${Math.round(snap.progress * 100)}` +
-			`&STOPWATCH=${snap.stopwatch ? 'TRUE' : 'FALSE'}` +
-			`&TEXT=${encodeURIComponent(snap.message)}` +
-			`&TARGET=${snap.target ? clock(new Date(snap.target)) : ''}` +
-			`&SPEAKER=${encodeURIComponent(snap.speakerName ?? snap.label ?? '')}` +
-			`&SPEAKERNUM=${snap.speakerNumber ?? 0}` +
-			`&NEXTSPEAKER=${encodeURIComponent(snap.nextSpeakerName ?? '')}` +
-			`&NEXTSPEAKERNUM=${snap.nextSpeakerNumber ?? 0}`
+/** Progress percent from whole seconds, so it changes at most once a second (one push per second). */
+function wholeSecondProgress(v) {
+	if (v.stopwatch || !(v.durationSeconds > 0)) return 0
+	return Math.min(100, Math.max(0, Math.round(100 * (1 - v.seconds / v.durationSeconds))))
+}
+
+/** The state pushed to clients, from a buildView() view (real overtime, never held at zero). */
+function stateJson(v) {
+	return {
+		state: v.state, // PLAYING | PAUSED | STOPPED
+		mode: v.mode, // TIMER | CLOCK | BLACK | TEST
+		time: v.time, // hh:mm:ss, unsigned (elapsed in stopwatch mode)
+		overtime: !!v.overtime,
+		seconds: v.seconds, // signed: negative = overtime
+		elapsed: v.elapsed,
+		duration: v.duration,
+		end: v.endTime ? clock(new Date(v.endTime)) : '', // hh:mm:ss time of day
+		warn: v.warn ?? '', // GREEN | AMBER | RED | OVER
+		progress: wholeSecondProgress(v), // 0..100
+		stopwatch: !!v.stopwatch,
+		message: v.message || '',
+		target: v.target ? clock(new Date(v.target)) : '', // end time when counting to a time of day
+		speaker: v.speakerName ?? v.label ?? '',
+		speakerNumber: v.speakerNumber ?? 0,
+		nextSpeaker: v.nextSpeakerName ?? '',
+		nextSpeakerNumber: v.nextSpeakerNumber ?? 0,
 	}
-	return line
+}
+
+function stateLine(v) {
+	return 'STATE ' + JSON.stringify(stateJson(v))
 }
 
 /**
  * Handle one command line for a client session.
  * @param {string} raw - the line without EOL
- * @param {object} session - { updates: bool, updateMode: 1|2|3 }
+ * @param {object} session - { updates: bool }
  * @param {object} ctx - { engine, appVersion, warn(): string, loadPreset(n): bool }
  * @returns {{reply: string|null, sendUpdate: boolean}}
  */
@@ -84,7 +81,6 @@ function handleCommand(raw, session, ctx) {
 
 	switch (cmd) {
 		case 'GO':
-		case 'PLAY':
 			reply = engine.go() ? 'OK' : 'IGNORED'
 			break
 		case 'PAUSE':
@@ -119,6 +115,7 @@ function handleCommand(raw, session, ctx) {
 			if (arg1 === 'ON') {
 				session.updates = true
 				session.lastLine = null
+				session.lastSpeakers = null
 				reply = 'OK'
 				sendUpdate = true
 			} else if (arg1 === 'OFF') {
@@ -126,19 +123,9 @@ function handleCommand(raw, session, ctx) {
 				reply = 'OK'
 			}
 			break
-		case 'UPDATEMODE':
-			if (arg1 === '1' || arg1 === '2' || arg1 === '3') {
-				session.updateMode = +arg1
-				session.lastLine = null
-				reply = 'OK'
-				sendUpdate = session.updates
-			}
-			break
 		case 'VERSION':
-			reply = `VERSION ${COMPAT_VERSION}`
-			break
 		case 'APPVERSION':
-			reply = `APPVERSION ${ctx.appVersion || '0.0.0'}`
+			reply = `${cmd} ${ctx.appVersion || '0.0.0'}`
 			break
 		case 'MESSAGE': {
 			if (parts.length === 1) break // ERROR
@@ -195,16 +182,13 @@ function handleCommand(raw, session, ctx) {
 		}
 		case 'HELP':
 			reply =
-				'COMMANDS GO PLAY PAUSE TOGGLEPAUSE RESET [time] START <time> REMAINING STATE DISPLAY <TIMER|CLOCK|BLACK|TEST> ' +
-				'UPDATES <ON|OFF> UPDATEMODE <1|2|3> VERSION APPVERSION MESSAGE <text|CLEAR|FLASH> JOG <min> JOGSEC <sec> PRESET <1-9> ' +
+				'COMMANDS GO PAUSE TOGGLEPAUSE RESET [time] START <time> REMAINING STATE DISPLAY <TIMER|CLOCK|BLACK|TEST> ' +
+				'UPDATES <ON|OFF> VERSION MESSAGE <text|CLEAR|FLASH> JOG <min> JOGSEC <sec> PRESET <1-9> ' +
 				'TARGET <hh:mm[:ss]> TARGETSTART <hh:mm[:ss]> SPEAKER <n|NEXT|PREV> CUE <n|NEXT|PREV>'
 			break
 		default:
 			reply = 'ERROR'
 	}
-
-	// While UPDATES is on, Irisdown suppresses all other replies.
-	if (session.updates) reply = null
 	return { reply, sendUpdate }
 }
 
@@ -221,52 +205,28 @@ function splitLines(buffer) {
 // ---- UDP broadcast payloads ---------------------------------------------
 
 /**
- * Irisdown "remote display" packet (UDP 61003), 20 ASCII chars:
- * "IDCT:" + sign + 6-digit seconds + hex timer id + colour 'G' + blink '0' + "-----".
+ * Remote-display packet (UDP 61003), 20 ASCII chars:
+ * "IDCT:" + sign + 6-digit seconds + hex timer id + colour + blink + "-----".
+ * Follows the main display: colour G/A/R by warning level (W for white-only or the clock),
+ * blink 1 while the main display flashes in overtime, and hold at zero applies.
  * In CLOCK mode the seconds field carries the time of day (h*3600 + m*60).
+ * @param {object} view - from buildView()
+ * @param {object} s - settings (whiteOnly, flashOvertime)
  */
-function remoteDisplayPacket(snap, id = 0, now = new Date()) {
-	let sign = snap.overtime ? '-' : '+'
-	let secs = Math.abs(snap.seconds)
-	if (snap.mode === 'CLOCK') {
+function remoteDisplayPacket(view, id = 0, s = {}, now = new Date()) {
+	const stage = stageView(view)
+	let sign = stage.overtime ? '-' : '+'
+	let secs = Math.abs(stage.seconds)
+	let colour = s.whiteOnly ? 'W' : view.warn === 'AMBER' ? 'A' : view.warn === 'RED' || view.warn === 'OVER' ? 'R' : 'G'
+	const blink = view.mode === 'TIMER' && view.overtime && s.flashOvertime ? '1' : '0'
+	if (view.mode === 'CLOCK') {
 		sign = '+'
 		secs = now.getHours() * 3600 + now.getMinutes() * 60
+		colour = 'W'
 	}
 	secs = Math.min(secs, 999999)
 	const idHex = (id & 0xf).toString(16).toUpperCase()
-	return `IDCT:${sign}${String(secs).padStart(6, '0')}${idHex}G0-----`
+	return `IDCT:${sign}${String(secs).padStart(6, '0')}${idHex}${colour}${blink}-----`
 }
 
-function bcd(n) {
-	return ((Math.floor(n / 10) & 0xf) << 4) + (n % 10)
-}
-
-/**
- * Interspace/Hive CDEther receiver packet (UDP 36700), 3 bytes:
- * [BCD minutes, BCD seconds, flags]. Mirrors Countdown Timer 2.0.17 UDPSend_Hive.
- * flags: 1 = green, 3 = amber, 2 = red, 0 = blank (BLACK mode).
- */
-function hivePacket(snap, warn, now = new Date()) {
-	let b0
-	let b1
-	let flags
-	if (snap.mode === 'CLOCK') {
-		b0 = bcd(now.getHours())
-		b1 = bcd(now.getMinutes())
-		flags = 1
-	} else {
-		let s = snap.seconds
-		if (s > 5999) s = 5999
-		if (s < -599) s = -599
-		const a = Math.abs(s)
-		const min = Math.floor(a / 60)
-		b0 = bcd(min)
-		if (s < 0 && min < 10) b0 |= 10 // as shipped
-		b1 = bcd(a % 60)
-		flags = warn === 'AMBER' ? 3 : warn === 'RED' || warn === 'OVER' ? 2 : 1
-		if (snap.mode === 'BLACK') flags = 0
-	}
-	return Buffer.from([b0 & 0xff, b1 & 0xff, flags])
-}
-
-module.exports = { handleCommand, modeLine, speakersLine, splitLines, remoteDisplayPacket, hivePacket, COMPAT_VERSION, hms }
+module.exports = { handleCommand, stateJson, stateLine, speakersLine, splitLines, remoteDisplayPacket, hms }

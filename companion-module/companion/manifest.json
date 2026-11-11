@@ -3,7 +3,7 @@
 	"id": "tinroof-timer",
 	"name": "tinroof-timer",
 	"shortname": "tinrooftimer",
-	"description": "Control TinRoof Timer (and Irisdown Countdown Timer 2.0) with rich feedback and variables",
+	"description": "Control TinRoof Timer with rich feedback and variables",
 	"version": "0.0.0",
 	"license": "MIT",
 	"repository": "",
@@ -17,6 +17,6 @@
 		"entrypoint": "../src/main.js"
 	},
 	"manufacturer": "TinRoof Timer",
-	"products": ["TinRoof Timer", "Irisdown Countdown Timer 2.0"],
+	"products": ["TinRoof Timer"],
 	"keywords": ["Timer", "Countdown", "Speaker", "Clock", "Stage"]
 }

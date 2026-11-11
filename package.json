@@ -1,7 +1,7 @@
 {
   "name": "tinroof-timer",
   "productName": "TinRoof Timer",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Cross-platform speaker countdown timer, protocol-compatible with Irisdown Countdown Timer 2.0 and Bitfocus Companion",
   "main": "src/main/main.js",
   "author": "BasilChessman",

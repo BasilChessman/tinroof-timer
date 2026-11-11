@@ -1,109 +1,54 @@
-// Pure parsing of the timer's UPDATES lines (mode 1, 2 and the TinRoof Timer mode 3).
+// Pure parsing of the lines TinRoof Timer pushes after UPDATES ON:
+//   STATE {json}     timer state (fields as in emptyState())
+//   SPEAKERS [json]  speaker list [{ n, name, time, done }]
 
 export const STATE_LABELS = { PLAYING: 'Running', PAUSED: 'Paused', STOPPED: 'Stopped' }
 
 export function emptyState() {
 	return {
-		time: '00:00:00',
-		sign: '+',
 		state: 'STOPPED',
 		mode: 'TIMER',
-		message: false,
-		messageText: '',
-		seconds: 0,
+		time: '00:00:00', // unsigned hh:mm:ss
+		overtime: false,
+		seconds: 0, // signed: negative = overtime
 		elapsed: '',
 		duration: '',
 		end: '',
 		warn: '',
 		progress: 0,
 		stopwatch: false,
-		extended: false,
+		message: '',
 		target: '',
 		speaker: '',
-		speakerNum: 0,
+		speakerNumber: 0,
 		nextSpeaker: '',
-		nextSpeakerNum: 0,
-		speakers: [], // [{ n, name, time, done }]
+		nextSpeakerNumber: 0,
+		speakers: [],
 	}
 }
 
-/** "SPEAKERS=<url-encoded JSON>" pushed by TinRoof Timer in UPDATEMODE 3. Returns the list or null. */
-export function parseSpeakers(line) {
-	if (!String(line).startsWith('SPEAKERS=')) return null
+function json(line, prefix) {
+	line = String(line)
+	if (!line.startsWith(prefix)) return null
 	try {
-		const list = JSON.parse(decodeURIComponent(line.slice(9)))
-		return Array.isArray(list) ? list : null
+		return JSON.parse(line.slice(prefix.length))
 	} catch {
 		return null
 	}
 }
 
-/**
- * Parse one line. Returns a partial state object, or null if the line is not an update.
- *  mode 1: "00:10:00 STOPPED TIMER"
- *  mode 2: "TIME=+00:10:00&STATE=STOPPED&DISPLAY=TIMER&MESSAGE=FALSE"
- *  mode 3: mode 2 + "&SECONDS=600&ELAPSED=..&DURATION=..&END=..&WARN=..&PROGRESS=..&STOPWATCH=..&TEXT=.."
- */
-export function parseUpdate(line) {
-	line = String(line).trim()
-	if (line.startsWith('TIME=')) {
-		const f = {}
-		for (const kv of line.split('&')) {
-			const i = kv.indexOf('=')
-			if (i > 0) f[kv.slice(0, i)] = kv.slice(i + 1)
-		}
-		const t = f.TIME || '+00:00:00'
-		const sign = t[0] === '-' ? '-' : '+'
-		const out = {
-			sign,
-			time: t.replace(/^[+-]/, ''),
-			state: f.STATE || 'STOPPED',
-			mode: f.DISPLAY || 'TIMER',
-			message: f.MESSAGE === 'TRUE',
-		}
-		if ('SECONDS' in f) {
-			Object.assign(out, {
-				extended: true,
-				seconds: parseInt(f.SECONDS, 10) || 0,
-				elapsed: f.ELAPSED || '',
-				duration: f.DURATION || '',
-				end: f.END || '',
-				warn: f.WARN || '',
-				progress: parseInt(f.PROGRESS, 10) || 0,
-				stopwatch: f.STOPWATCH === 'TRUE',
-				messageText: safeDecode(f.TEXT || ''),
-				target: f.TARGET || '',
-				speaker: safeDecode(f.SPEAKER || ''),
-				speakerNum: parseInt(f.SPEAKERNUM, 10) || 0,
-				nextSpeaker: safeDecode(f.NEXTSPEAKER || ''),
-				nextSpeakerNum: parseInt(f.NEXTSPEAKERNUM, 10) || 0,
-			})
-		} else {
-			out.seconds = toSeconds(out.time) * (sign === '-' ? -1 : 1)
-		}
-		return out
-	}
-	const parts = line.split(' ')
-	if (parts.length === 3 && /^\d{2}:\d{2}:\d{2}$/.test(parts[0])) {
-		return { time: parts[0], sign: '+', state: parts[1], mode: parts[2], seconds: toSeconds(parts[0]) }
-	}
-	return null
+/** "STATE {json}" -> state fields, or null if the line isn't one. */
+export function parseState(line) {
+	const v = json(line, 'STATE ')
+	return v && typeof v === 'object' && !Array.isArray(v) ? v : null
 }
 
-function safeDecode(s) {
-	try {
-		return decodeURIComponent(s)
-	} catch {
-		return s
-	}
+/** "SPEAKERS [json]" -> the list, or null if the line isn't one. */
+export function parseSpeakers(line) {
+	const v = json(line, 'SPEAKERS ')
+	return Array.isArray(v) ? v : null
 }
 
-export function toSeconds(hms) {
-	const [h, m, s] = String(hms).split(':').map((x) => parseInt(x, 10) || 0)
-	return h * 3600 + m * 60 + s
-}
-
-/** "17:05:30" -> "5:05 PM" (seconds dropped); empty in, empty out. */
 export function clock12(hms) {
 	const [h, m] = String(hms || '').split(':')
 	if (!h || m === undefined) return ''
@@ -114,10 +59,9 @@ export function clock12(hms) {
 /** Build the Companion variable values from a state object. */
 export function variableValues(st, connected = true) {
 	const [h = '00', m = '00', s = '00'] = st.time.split(':')
-	const over = st.sign === '-'
+	const over = !!st.overtime
 	const totalMin = parseInt(h, 10) * 60 + parseInt(m, 10)
 	return {
-		// --- same ids as the Irisdown module (drop-in replacement for button text) ---
 		state: STATE_LABELS[st.state] ?? st.state,
 		mode: st.mode,
 		time: st.time,
@@ -125,7 +69,6 @@ export function variableValues(st, connected = true) {
 		time_h: h,
 		time_m: m,
 		time_s: s,
-		// --- extras ---
 		state_raw: st.state,
 		time_signed: `${over ? '-' : ''}${st.time}`,
 		time_ms: `${over ? '-' : ''}${String(totalMin).padStart(2, '0')}:${s}`,
@@ -139,14 +82,14 @@ export function variableValues(st, connected = true) {
 		warning: st.warn,
 		progress: st.progress,
 		message_active: !!st.message,
-		message: st.messageText,
+		message: st.message,
 		stopwatch: !!st.stopwatch,
 		target_time: st.target,
 		countdown_to_time: !!st.target,
 		speaker_name: st.speaker,
-		speaker_number: st.speakerNum,
+		speaker_number: st.speakerNumber,
 		next_speaker_name: st.nextSpeaker,
-		next_speaker_number: st.nextSpeakerNum,
+		next_speaker_number: st.nextSpeakerNumber,
 		speaker_count: st.speakers.length,
 		connected,
 	}

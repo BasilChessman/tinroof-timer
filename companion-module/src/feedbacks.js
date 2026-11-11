@@ -6,7 +6,6 @@ const BLACK = combineRgb(0, 0, 0)
 
 export function getFeedbacks(self) {
 	return {
-		// same id/behaviour as the Irisdown module
 		state_color: {
 			type: 'advanced',
 			name: 'Change colors from state',
@@ -100,7 +99,7 @@ export function getFeedbacks(self) {
 			description: 'True when this speaker is loaded (on the clock)',
 			options: [{ type: 'number', id: 'n', label: 'Speaker number', default: 1, min: 1, max: 200 }],
 			defaultStyle: { color: WHITE, bgcolor: combineRgb(0, 120, 0) },
-			callback: (fb) => self.st.speakerNum === fb.options.n,
+			callback: (fb) => self.st.speakerNumber === fb.options.n,
 		},
 		speaker_done: {
 			type: 'boolean',
@@ -114,7 +113,7 @@ export function getFeedbacks(self) {
 			name: 'Speaker is next',
 			options: [{ type: 'number', id: 'n', label: 'Speaker number', default: 1, min: 1, max: 200 }],
 			defaultStyle: { color: WHITE, bgcolor: combineRgb(40, 60, 110) },
-			callback: (fb) => self.st.nextSpeakerNum === fb.options.n,
+			callback: (fb) => self.st.nextSpeakerNumber === fb.options.n,
 		},
 		countdown_to_time: {
 			type: 'boolean',
@@ -128,7 +127,7 @@ export function getFeedbacks(self) {
 			name: 'Timer is in overtime',
 			options: [],
 			defaultStyle: { color: WHITE, bgcolor: combineRgb(200, 0, 0) },
-			callback: () => self.st.sign === '-',
+			callback: () => !!self.st.overtime,
 		},
 	}
 }

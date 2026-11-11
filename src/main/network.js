@@ -6,8 +6,7 @@ const os = require('node:os')
 const fs = require('node:fs')
 const path = require('node:path')
 const crypto = require('node:crypto')
-const { handleCommand, modeLine, speakersLine, splitLines, remoteDisplayPacket, hivePacket } = require('./protocol')
-const { stageView } = require('./view')
+const { handleCommand, stateLine, speakersLine, splitLines, remoteDisplayPacket } = require('./protocol')
 
 const RENDERER_DIR = path.join(__dirname, '..', 'renderer')
 const STATIC = {
@@ -90,7 +89,7 @@ class NetworkServices {
 	startTcp(port) {
 		this.tcpServer = net.createServer((socket) => {
 			socket.setNoDelay(true)
-			const client = { socket, session: { updates: false, updateMode: 1, lastLine: null }, buf: '' }
+			const client = { socket, session: { updates: false, lastLine: null, lastSpeakers: null }, buf: '' }
 			this.clients.add(client)
 			this.log?.(`TCP client connected: ${socket.remoteAddress}`)
 			this.onClientsChanged?.()
@@ -139,16 +138,15 @@ class NetworkServices {
 		if (!client.socket.destroyed) client.socket.write(text + '\r\n')
 	}
 
+	/** Push SPEAKERS and STATE lines to a client that turned UPDATES on, when they've changed. */
 	sendUpdate(client, force = false, view = this.getView(), spLine = null) {
 		const ses = client.session
-		if (ses.updateMode === 3) {
-			const sl = spLine ?? this.speakersLine()
-			if (force || sl !== ses.lastSpeakers) {
-				ses.lastSpeakers = sl
-				this.write(client, sl)
-			}
+		const sl = spLine ?? this.speakersLine()
+		if (force || sl !== ses.lastSpeakers) {
+			ses.lastSpeakers = sl
+			this.write(client, sl)
 		}
-		const line = modeLine(view, ses.updateMode, { warn: view.warn })
+		const line = stateLine(view)
 		if (force || line !== ses.lastLine) {
 			ses.lastLine = line
 			this.write(client, line)
@@ -162,18 +160,17 @@ class NetworkServices {
 
 	/** Run a command from the HTTP API (stateless session). */
 	httpCommand(text) {
-		const session = { updates: false, updateMode: 2 }
+		const session = { updates: false }
 		return handleCommand(text, session, this.ctx()).reply ?? 'OK'
 	}
 
 	// ---------------------------------------------------------------- tick
 	tick() {
 		const view = this.getView()
-		let sl = null
-		for (const c of this.clients) {
-			if (!c.session.updates) continue
-			if (c.session.updateMode === 3 && sl == null) sl = this.speakersLine()
-			this.sendUpdate(c, false, view, sl)
+		const updating = [...this.clients].filter((c) => c.session.updates)
+		if (updating.length) {
+			const sl = this.speakersLine()
+			for (const c of updating) this.sendUpdate(c, false, view, sl)
 		}
 		this.broadcastUdp(view)
 		if (this.sseClients.size) {
@@ -215,10 +212,8 @@ class NetworkServices {
 	broadcastUdp(view) {
 		const s = this.getSettings()
 		if (!this.udpSockets.length) return
-		view = stageView(view) // UDP feeds stage displays: hold at zero applies
 		const msgs = []
-		if (s.udpBroadcast) msgs.push([Buffer.from(remoteDisplayPacket(view, s.udpId), 'ascii'), 61003])
-		if (s.hiveBroadcast) msgs.push([hivePacket(view, view.warn), 36700])
+		if (s.udpBroadcast) msgs.push([Buffer.from(remoteDisplayPacket(view, s.udpId, s), 'ascii'), 61003])
 		for (const sock of this.udpSockets) {
 			for (const [buf, port] of msgs) {
 				try {
@@ -256,7 +251,7 @@ class NetworkServices {
 				return send(200, type, fs.readFileSync(path.join(RENDERER_DIR, file)))
 			}
 			if (p === '/timer.txt') {
-				// Irisdown-compatible fragment: <span style="color:#RRGGBB;">text</span>
+				// HTML fragment for other software: <span style="color:#RRGGBB;">text</span>
 				const v = this.getView()
 				let text = v.timerText
 				let color = v.color
@@ -304,7 +299,7 @@ class NetworkServices {
 	}
 
 	// ---------------------------------------------------------------- SSDP / UPnP
-	// Advertises the web view so it appears in Windows "Network" (like Irisdown).
+	// Advertises the web view so it appears in the Windows "Network" browser.
 	deviceUuid() {
 		if (!this.uuid) {
 			const h = crypto.createHash('sha1').update('tinroof-timer:' + os.hostname()).digest('hex')

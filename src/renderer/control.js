@@ -251,7 +251,7 @@ async function refreshNet() {
 	$('netDetail').innerHTML =
 		`IP addresses: ${n.addresses.map((a) => `<code>${a}</code>`).join(', ') || 'none'}<br>` +
 		`TCP: ${n.status.tcp} · Web: ${n.status.web} · UDP: ${n.status.udp} · SSDP: ${n.status.ssdp}<br>` +
-		`In Companion add the <b>Irisdown: Countdown Timer</b> or <b>TinRoof Timer</b> module and enter this computer's IP address.`
+		`In Companion add the <b>TinRoof Timer</b> module and enter this computer's IP address.`
 }
 api.on('net', refreshNet)
 setInterval(refreshNet, 3000)
@@ -487,7 +487,7 @@ $('btnDefaults').onclick = async () => {
 
 async function openAbout() {
 	const i = await api.appInfo()
-	$('aboutVersion').textContent = `Version ${i.version} · protocol level ${i.compat} · Electron ${i.electron}`
+	$('aboutVersion').textContent = `Version ${i.version} · Electron ${i.electron}`
 	$('dlgAbout').showModal()
 }
 

@@ -2,7 +2,7 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const { TimerEngine, parseTimeOfDay } = require('../src/main/timer')
-const { handleCommand, modeLine, speakersLine } = require('../src/main/protocol')
+const { handleCommand, stateJson, speakersLine } = require('../src/main/protocol')
 const { parseCsv, toCsv, parseSpeakerTime, normalizeList } = require('../src/main/speakers')
 
 const at = (h, m, s = 0) => new Date(2026, 10, 10, h, m, s).getTime()
@@ -58,10 +58,10 @@ test('time-of-day with stop at zero; new duration leaves time-of-day mode', () =
 	assert.equal(e.snapshot().seconds, 60)
 })
 
-test('TARGET / TARGETSTART protocol commands and mode-3 fields', () => {
+test('TARGET / TARGETSTART protocol commands and the target field', () => {
 	let t = at(9, 0)
 	const engine = new TimerEngine({ now: () => t })
-	const session = { updates: false, updateMode: 1 }
+	const session = { updates: false }
 	const cmd = (l) => handleCommand(l, session, { engine }).reply
 	assert.equal(cmd('TARGET 09:30'), 'OK')
 	assert.equal(engine.state, 'STOPPED')
@@ -69,18 +69,16 @@ test('TARGET / TARGETSTART protocol commands and mode-3 fields', () => {
 	assert.equal(cmd('TARGETSTART 10:00'), 'OK')
 	assert.equal(engine.state, 'PLAYING')
 	assert.equal(cmd('TARGET nonsense'), 'ERROR')
-	const line = modeLine({ ...engine.snapshot(), speakerName: 'Ada & Co', speakerNumber: 2, nextSpeakerName: 'Bob', nextSpeakerNumber: 3 }, 3, { warn: 'GREEN' })
-	assert.match(line, /&TARGET=10:00:00/)
-	assert.match(line, /&SPEAKER=Ada%20%26%20Co&SPEAKERNUM=2&NEXTSPEAKER=Bob&NEXTSPEAKERNUM=3/)
-	// mode 2 stays exactly Irisdown-shaped
-	assert.equal(modeLine(engine.snapshot(), 2), 'TIME=+01:00:00&STATE=PLAYING&DISPLAY=TIMER&MESSAGE=FALSE')
+	const j = stateJson(engine.snapshot())
+	assert.equal(j.target, '10:00:00')
+	assert.equal(j.end, '10:00:00')
 })
 
 test('SPEAKER / CUE protocol commands delegate to the app', () => {
 	const engine = new TimerEngine()
 	const calls = []
 	const ctx = { engine, speaker: (sel, start) => (calls.push([sel, start]), sel !== 9) }
-	const session = { updates: false, updateMode: 1 }
+	const session = { updates: false }
 	const cmd = (l) => handleCommand(l, session, ctx).reply
 	assert.equal(cmd('SPEAKER 2'), 'OK')
 	assert.equal(cmd('CUE next'), 'OK')
@@ -112,8 +110,8 @@ test('speaker time cells and CSV round trip', () => {
 test('speakersLine lists speakers with done flags', () => {
 	const list = normalizeList([{ id: 'a', name: 'Alice', seconds: 600 }, { id: 'b', name: 'Bob', type: 'until', until: '10:30' }])
 	const line = speakersLine(list, ['a'])
-	assert.ok(line.startsWith('SPEAKERS='))
-	assert.deepEqual(JSON.parse(decodeURIComponent(line.slice(9))), [
+	assert.ok(line.startsWith('SPEAKERS ['))
+	assert.deepEqual(JSON.parse(line.slice(9)), [
 		{ n: 1, name: 'Alice', time: '00:10:00', done: true },
 		{ n: 2, name: 'Bob', time: '@10:30', done: false },
 	])

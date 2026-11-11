@@ -204,7 +204,7 @@
 			big.textContent = text
 			big.style.color = color
 			bigWrap.style.display = mode === 'BLACK' ? 'none' : ''
-			big.classList.toggle('sd-flash-over', !!(mode === 'TIMER' && (v.stageOvertime ?? v.overtime) && s.flashOvertime))
+			big.classList.toggle('sd-flash-over', !!(mode === 'TIMER' && v.overtime && s.flashOvertime))
 			big.classList.toggle('sd-paused', mode === 'TIMER' && v.state === 'PAUSED')
 
 			// top bar

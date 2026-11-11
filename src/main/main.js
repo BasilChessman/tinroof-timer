@@ -9,7 +9,6 @@ const { Settings } = require('./settings')
 const { RunLog, toCsv: runLogCsv } = require('./runlog')
 const { buildView } = require('./view')
 const { NetworkServices } = require('./network')
-const { COMPAT_VERSION } = require('./protocol')
 
 const RENDERER = path.join(__dirname, '..', 'renderer')
 const isMac = process.platform === 'darwin'
@@ -394,7 +393,7 @@ function registerIpc() {
 		return r.canceled ? null : r.filePaths[0]
 	})
 	ipcMain.handle('sound:url', (_e, file) => pathToFileURL(file).href)
-	ipcMain.handle('app:info', () => ({ version: app.getVersion(), compat: COMPAT_VERSION, electron: process.versions.electron, platform: process.platform }))
+	ipcMain.handle('app:info', () => ({ version: app.getVersion(), electron: process.versions.electron, platform: process.platform }))
 	ipcMain.handle('open:external', (_e, url) => {
 		if (/^https?:\/\//.test(url)) shell.openExternal(url)
 	})

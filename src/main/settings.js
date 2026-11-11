@@ -16,11 +16,11 @@ const DEFAULTS = Object.freeze({
 	presets: defaultPresets(),
 	alwaysShowHours: false,
 	atZero: 'count', // 'count' into overtime, 'hold' the display at zero but keep counting, or 'stop'
-	amberSeconds: 120, // Irisdown "Amber Time (mins)" — stored in seconds for finer control
+	amberSeconds: 120, // seconds remaining
 	redSeconds: 60,
 	overtimeSign: '-', // '-', '+', or '' shown before overtime on the display
 	whiteOnly: false,
-	colorNormal: '#00A800', // Irisdown's green
+	colorNormal: '#00A800',
 	colorAmber: '#FFB000',
 	colorRed: '#FF2020',
 	colorWhite: '#FFFFFF',
@@ -56,7 +56,6 @@ const DEFAULTS = Object.freeze({
 	webPort: 8181,
 	udpBroadcast: true,
 	udpId: 0,
-	hiveBroadcast: false,
 	ssdp: true,
 	// Misc
 	loadAtStartup: false,
@@ -77,6 +76,7 @@ class Settings {
 				// 1.3 and earlier had a stopAtZero checkbox
 				if (!('atZero' in raw)) this.data.atZero = raw.stopAtZero ? 'stop' : 'count'
 				delete this.data.stopAtZero
+				delete this.data.hiveBroadcast // Hive output removed in 1.4.1
 				if (!Array.isArray(this.data.presets) || this.data.presets.length !== 9) this.data.presets = defaultPresets()
 			}
 		} catch {

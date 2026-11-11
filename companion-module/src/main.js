@@ -3,13 +3,13 @@ import { getActions } from './actions.js'
 import { getFeedbacks } from './feedbacks.js'
 import { getPresets } from './presets.js'
 import { getVariables, getSpeakerSlotVariables } from './variables.js'
-import { emptyState, parseUpdate, parseSpeakers, variableValues, speakerSlotValues } from './parse.js'
+import { emptyState, parseState, parseSpeakers, variableValues, speakerSlotValues } from './parse.js'
 
 const MIN_SPEAKER_SLOTS = 20
 
 class TinRoofTimerInstance extends InstanceBase {
 	st = emptyState()
-	isTinRoofTimer = false
+	pending = [] // commands sent and not yet answered (replies come back in order)
 	speakerSlots = MIN_SPEAKER_SLOTS
 
 	getConfigFields() {
@@ -19,29 +19,10 @@ class TinRoofTimerInstance extends InstanceBase {
 				id: 'info',
 				width: 12,
 				label: 'Information',
-				value:
-					'Controls <b>TinRoof Timer</b> over TCP. Also works with Irisdown Countdown Timer 2.0 (with fewer variables).',
+				value: 'Controls <b>TinRoof Timer</b> over TCP. Needs TinRoof Timer 1.5.0 or later.',
 			},
 			{ type: 'textinput', id: 'host', label: 'Target IP', width: 6, default: '127.0.0.1', regex: Regex.IP },
 			{ type: 'number', id: 'port', label: 'TCP port', width: 3, default: 61002, min: 1, max: 65535 },
-			{
-				type: 'number',
-				id: 'amber',
-				label: 'Amber warning (seconds) — only used with Irisdown',
-				width: 6,
-				default: 120,
-				min: 0,
-				max: 36000,
-			},
-			{
-				type: 'number',
-				id: 'red',
-				label: 'Red warning (seconds) — only used with Irisdown',
-				width: 6,
-				default: 60,
-				min: 0,
-				max: 36000,
-			},
 		]
 	}
 
@@ -70,7 +51,7 @@ class TinRoofTimerInstance extends InstanceBase {
 		this.socket?.destroy()
 		delete this.socket
 		this.st = emptyState()
-		this.isTinRoofTimer = false
+		this.pending = []
 		if (!this.config.host) {
 			this.updateStatus(InstanceStatus.BadConfig, 'No host')
 			return
@@ -83,10 +64,9 @@ class TinRoofTimerInstance extends InstanceBase {
 		sock.on('error', (err) => this.log('debug', `Network error: ${err.message}`))
 		sock.on('connect', () => {
 			buf = ''
-			this.isTinRoofTimer = false
-			// APPVERSION identifies TinRoof Timer (Irisdown answers ERROR) -> choose update mode
-			this.raw('APPVERSION')
+			this.pending = []
 			this.raw('VERSION')
+			this.raw('UPDATES ON')
 		})
 		sock.on('end', () => this.publish(false))
 		sock.on('data', (chunk) => {
@@ -99,15 +79,10 @@ class TinRoofTimerInstance extends InstanceBase {
 
 	onLine(line) {
 		if (!line) return
-		if (line.startsWith('APPVERSION ')) {
-			this.isTinRoofTimer = true
-			this.log('info', `Connected to TinRoof Timer ${line.slice(11)}`)
-			return
-		}
-		if (line.startsWith('VERSION ')) {
-			if (!this.isTinRoofTimer) this.log('info', `Connected to Irisdown-compatible timer ${line.slice(8)}`)
-			this.raw(`UPDATEMODE ${this.isTinRoofTimer ? 3 : 2}`)
-			this.raw('UPDATES ON')
+		const st = parseState(line)
+		if (st) {
+			Object.assign(this.st, st)
+			this.publish(true)
 			return
 		}
 		const list = parseSpeakers(line)
@@ -122,15 +97,12 @@ class TinRoofTimerInstance extends InstanceBase {
 			this.publish(true)
 			return
 		}
-		const u = parseUpdate(line)
-		if (!u) return
-		Object.assign(this.st, u)
-		if (!this.st.extended) {
-			const s = this.st.seconds
-			this.st.warn =
-				this.st.sign === '-' ? 'OVER' : s <= (this.config.red ?? 60) ? 'RED' : s <= (this.config.amber ?? 120) ? 'AMBER' : 'GREEN'
-		}
-		this.publish(true)
+		// anything else is the reply to the oldest command we sent
+		const cmd = this.pending.shift() ?? '?'
+		if (line === 'ERROR') this.log('warn', `TinRoof Timer didn't understand "${cmd}"`)
+		else if (line === 'IGNORED') this.log('info', `TinRoof Timer ignored "${cmd}" (doesn't apply right now)`)
+		else if (line.startsWith('VERSION ')) this.log('info', `Connected to TinRoof Timer ${line.slice(8)}`)
+		else if (line !== 'OK') this.log('debug', `${cmd}: ${line}`)
 	}
 
 	defineVariables() {
@@ -144,6 +116,7 @@ class TinRoofTimerInstance extends InstanceBase {
 
 	raw(cmd) {
 		if (!this.socket?.isConnected) return
+		this.pending.push(cmd)
 		this.socket.send(cmd + '\r\n').catch((e) => this.log('debug', `send failed: ${e.message}`))
 	}
 
@@ -153,6 +126,7 @@ class TinRoofTimerInstance extends InstanceBase {
 			return
 		}
 		this.log('debug', `sending ${cmd}`)
+		this.pending.push(cmd)
 		await this.socket.send(cmd + '\r\n')
 	}
 }

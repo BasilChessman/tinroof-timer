@@ -1,5 +1,4 @@
-// Action ids go/pause/togglePause/reset/resetT/jog/message/messageClear/displayM match the
-// Irisdown module so existing button configs translate 1:1.
+// Action ids are stored in users' buttons: never rename them.
 const MODE_CHOICES = [
 	{ id: 'TIMER', label: 'Timer' },
 	{ id: 'CLOCK', label: 'Clock' },
@@ -27,7 +26,7 @@ export function getActions(self) {
 			callback: async (a, ctx) => self.send(`RESET ${cleanTime(await ctx.parseVariablesInString(a.options.time))}`),
 		},
 		start: {
-			name: 'Set duration and start (TinRoof Timer)',
+			name: 'Set duration and start',
 			options: [
 				{ type: 'textinput', id: 'time', label: 'Time: minutes or hh:mm:ss', default: '00:05:00', useVariables: true },
 			],
@@ -46,12 +45,12 @@ export function getActions(self) {
 			callback: async (a) => self.send(`JOG ${Math.trunc(Number(a.options.minutes) || 0)}`),
 		},
 		jogSeconds: {
-			name: 'Jog timer up/down (seconds, TinRoof Timer)',
+			name: 'Jog timer up/down (seconds)',
 			options: [{ type: 'number', id: 'seconds', label: 'Seconds (negative to subtract)', default: 10, min: -3600, max: 3600 }],
 			callback: async (a) => self.send(`JOGSEC ${Math.trunc(Number(a.options.seconds) || 0)}`),
 		},
 		preset: {
-			name: 'Load preset 1-9 (TinRoof Timer)',
+			name: 'Load preset 1-9',
 			options: [{ type: 'number', id: 'n', label: 'Preset', default: 1, min: 1, max: 9 }],
 			callback: async (a) => self.send(`PRESET ${a.options.n}`),
 		},
@@ -64,14 +63,14 @@ export function getActions(self) {
 			},
 		},
 		messageClear: simple('Clear message', 'MESSAGE CLEAR'),
-		messageFlash: simple('Flash current message again (TinRoof Timer)', 'MESSAGE FLASH'),
+		messageFlash: simple('Flash current message again', 'MESSAGE FLASH'),
 		displayM: {
 			name: 'Change display mode',
 			options: [{ type: 'dropdown', id: 'mode', label: 'Display mode', default: 'TIMER', choices: MODE_CHOICES }],
 			callback: async (a) => self.send(`DISPLAY ${a.options.mode}`),
 		},
 		countToTime: {
-			name: 'Count down to a time of day (TinRoof Timer)',
+			name: 'Count down to a time of day',
 			options: [
 				{ type: 'textinput', id: 'time', label: 'End time (e.g. 14:30, 14:30:00 or 2:30pm)', default: '12:00', useVariables: true },
 				{ type: 'checkbox', id: 'start', label: 'Start immediately', default: true },
@@ -82,7 +81,7 @@ export function getActions(self) {
 			},
 		},
 		speakerStart: {
-			name: 'Speaker: start speaker by number (TinRoof Timer)',
+			name: 'Speaker: start speaker by number',
 			options: [
 				{ type: 'textinput', id: 'n', label: 'Speaker number (1 = first in the list)', default: '1', useVariables: true },
 				{ type: 'checkbox', id: 'start', label: 'Start the countdown (unticked = cue only)', default: true },
@@ -93,12 +92,12 @@ export function getActions(self) {
 			},
 		},
 		speakerNext: {
-			name: 'Speaker: next (TinRoof Timer)',
+			name: 'Speaker: next',
 			options: [{ type: 'checkbox', id: 'start', label: 'Start the countdown (unticked = cue only)', default: true }],
 			callback: async (a) => self.send(`${a.options.start ? 'SPEAKER' : 'CUE'} NEXT`),
 		},
 		speakerPrev: {
-			name: 'Speaker: previous (TinRoof Timer)',
+			name: 'Speaker: previous',
 			options: [{ type: 'checkbox', id: 'start', label: 'Start the countdown (unticked = cue only)', default: true }],
 			callback: async (a) => self.send(`${a.options.start ? 'SPEAKER' : 'CUE'} PREV`),
 		},

@@ -2,7 +2,7 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const { TimerEngine, parseDuration } = require('../src/main/timer')
-const { handleCommand, modeLine, splitLines, remoteDisplayPacket, hivePacket } = require('../src/main/protocol')
+const { handleCommand, stateLine, stateJson, splitLines, remoteDisplayPacket } = require('../src/main/protocol')
 const { buildView, stageView } = require('../src/main/view')
 const { DEFAULTS } = require('../src/main/settings')
 
@@ -10,7 +10,7 @@ function rig() {
 	let t = 1_000_000
 	const clock = { now: () => t, advance: (ms) => (t += ms) }
 	const engine = new TimerEngine({ now: clock.now })
-	const session = { updates: false, updateMode: 1 }
+	const session = { updates: false }
 	const presets = { 3: 180 }
 	const ctx = {
 		engine,
@@ -21,7 +21,7 @@ function rig() {
 	return { clock, engine, session, cmd }
 }
 
-test('parseDuration matches Irisdown RESET syntax', () => {
+test('parseDuration accepts minutes, hh:mm and hh:mm:ss', () => {
 	assert.equal(parseDuration('25'), 25 * 60000)
 	assert.equal(parseDuration('01:30'), 90 * 60000)
 	assert.equal(parseDuration('00:05:30'), 330000)
@@ -44,7 +44,7 @@ test('GO / PAUSE / TOGGLEPAUSE replies follow Irisdown context rules', () => {
 	assert.equal(cmd('TOGGLEPAUSE'), 'OK')
 	assert.equal(engine.state, 'PAUSED')
 	assert.equal(cmd('RESET'), 'OK')
-	assert.equal(cmd('PLAY'), 'OK') // undocumented alias
+	assert.equal(cmd('PLAY'), 'ERROR') // Irisdown's alias is gone
 })
 
 test('RESET <time>, REMAINING, STATE', () => {
@@ -102,58 +102,42 @@ test('MESSAGE strips one pair of quotes, CLEAR works, 90-char limit', () => {
 	assert.equal(cmd('MESSAGE'), 'ERROR')
 })
 
-test('VERSION satisfies the Companion module UPDATEMODE 2 check', () => {
+test('VERSION and APPVERSION report the app version', () => {
 	const { cmd } = rig()
-	const reply = cmd('VERSION')
-	const parts = reply.split(' ')
-	assert.equal(parts.length, 2)
-	assert.equal(parts[0], 'VERSION')
-	// companion-module-irisdown-countdowntimer: compareVersion(v, '2.0.9.3') > 0
-	const v = parts[1].split('.').map(Number)
-	assert.ok(v[0] > 2 || (v[0] === 2 && (v[1] > 0 || v[2] > 9 || (v[2] === 9 && v[3] > 3))))
+	assert.equal(cmd('VERSION'), 'VERSION 1.0.0')
+	assert.equal(cmd('APPVERSION'), 'APPVERSION 1.0.0')
+	assert.equal(cmd('UPDATEMODE 2'), 'ERROR') // Irisdown update modes are gone
 })
 
-test('UPDATES suppresses other replies; mode 1 and mode 2 formats', () => {
+test('replies keep coming while UPDATES is on', () => {
 	const { cmd, engine, session } = rig()
 	cmd('RESET 00:10:00')
-	assert.equal(cmd('UPDATEMODE 2'), 'OK')
-	assert.equal(cmd('UPDATES ON'), null)
-	assert.equal(cmd('GO'), null)
-	assert.equal(engine.state, 'PLAYING')
-	assert.equal(session.updates, true)
-	engine.pause()
-	const snap = engine.snapshot()
-	assert.equal(modeLine(snap, 1), '00:10:00 PAUSED TIMER')
-	assert.equal(modeLine(snap, 2), 'TIME=+00:10:00&STATE=PAUSED&DISPLAY=TIMER&MESSAGE=FALSE')
-	cmd('UPDATES OFF')
-	assert.equal(cmd('STATE'), 'PAUSED')
+	const r = handleCommand('UPDATES ON', session, { engine })
+	assert.deepEqual(r, { reply: 'OK', sendUpdate: true })
+	assert.equal(cmd('GO'), 'OK')
+	assert.equal(cmd('GO'), 'IGNORED')
+	assert.equal(cmd('STATE'), 'PLAYING')
+	assert.equal(cmd('UPDATES OFF'), 'OK')
+	assert.equal(session.updates, false)
 })
 
-test('mode lines parse exactly like the Irisdown Companion module does', () => {
+test('STATE line is one line of JSON with the real (signed) time', () => {
 	const { engine, clock } = rig()
 	engine.reset(5000)
 	engine.go()
 	clock.advance(65000) // 60 s overtime
-	engine.setMessage('hi')
-	const line2 = modeLine(engine.snapshot(), 2)
-	assert.equal(line2, 'TIME=-00:01:00&STATE=PLAYING&DISPLAY=TIMER&MESSAGE=TRUE')
-	// replicate the module's mode-2 parsing
-	const info = line2.split(/ /)
-	assert.ok(info[0].match('MESSAGE'))
-	const f = info[0].split('&')
-	assert.equal(f[0].slice(f[0].indexOf('=') + 2), '00:01:00')
-	assert.equal(f[1].slice(f[1].indexOf('=') + 1), 'PLAYING')
-	assert.equal(f[2].slice(f[2].indexOf('=') + 1), 'TIMER')
-	assert.equal(f[3].slice(f[3].indexOf('=') + 1), 'TRUE')
-	// mode 1 = 3 space-separated tokens
-	assert.equal(modeLine(engine.snapshot(), 1).split(/ /).length, 3)
-})
-
-test('mode 3 extension keeps the mode 2 prefix', () => {
-	const { engine } = rig()
-	const l3 = modeLine(engine.snapshot(), 3, { warn: 'GREEN' })
-	assert.ok(l3.startsWith('TIME=+00:05:00&STATE=STOPPED&DISPLAY=TIMER&MESSAGE=FALSE&SECONDS=300'))
-	assert.match(l3, /&WARN=GREEN/)
+	engine.setMessage('Wrap up & go')
+	const v = buildView(engine.snapshot(), { ...DEFAULTS, atZero: 'hold' })
+	const line = stateLine({ ...v, speakerName: 'Ada', speakerNumber: 2, nextSpeakerName: 'Bob', nextSpeakerNumber: 3 })
+	assert.ok(line.startsWith('STATE {'))
+	assert.ok(!/[\r\n]/.test(line))
+	const j = JSON.parse(line.slice(6))
+	assert.deepEqual(
+		{ state: j.state, mode: j.mode, time: j.time, overtime: j.overtime, seconds: j.seconds, warn: j.warn, progress: j.progress, message: j.message },
+		{ state: 'PLAYING', mode: 'TIMER', time: '00:01:00', overtime: true, seconds: -60, warn: 'OVER', progress: 100, message: 'Wrap up & go' },
+	)
+	assert.deepEqual([j.speaker, j.speakerNumber, j.nextSpeaker, j.nextSpeakerNumber], ['Ada', 2, 'Bob', 3])
+	assert.equal(stateJson(buildView(new TimerEngine().snapshot(), DEFAULTS)).end, '') // stopped: no end time
 })
 
 test('PRESET extension', () => {
@@ -168,23 +152,23 @@ test('splitLines accepts \\r, \\n and \\r\\n', () => {
 	assert.deepEqual(splitLines('GO\rPAUSE\nRESET\r\nVER'), [['GO', 'PAUSE', 'RESET'], 'VER'])
 })
 
-test('UDP remote-display packet is 20 chars in the IDCT format', () => {
+test('UDP remote-display packet follows the display colour and flash', () => {
 	const { engine, clock } = rig()
-	engine.reset(125000)
-	let p = remoteDisplayPacket(engine.snapshot(), 10)
-	assert.equal(p, 'IDCT:+000125AG0-----')
+	const s = { ...DEFAULTS }
+	const pkt = (id, set = s) => remoteDisplayPacket(buildView(engine.snapshot(), set), id, set)
+	engine.reset(600000)
+	let p = pkt(10)
+	assert.equal(p, 'IDCT:+000600AG0-----')
 	assert.equal(p.length, 20)
 	engine.go()
-	clock.advance(135000)
-	p = remoteDisplayPacket(engine.snapshot(), 0)
-	assert.equal(p, 'IDCT:-0000100G0-----')
-})
-
-test('Hive packet is BCD mm, ss, flags', () => {
-	const { engine } = rig()
-	engine.reset((12 * 60 + 34) * 1000)
-	assert.deepEqual([...hivePacket(engine.snapshot(), 'GREEN')], [0x12, 0x34, 1])
-	assert.deepEqual([...hivePacket(engine.snapshot(), 'AMBER')], [0x12, 0x34, 3])
+	clock.advance(500000) // 100 s left: amber
+	assert.equal(pkt(0), 'IDCT:+0001000A0-----')
+	clock.advance(50000) // 50 s left: red
+	assert.equal(pkt(0), 'IDCT:+0000500R0-----')
+	clock.advance(60000) // 10 s over: red, flashing
+	assert.equal(pkt(0), 'IDCT:-0000100R1-----')
+	assert.equal(pkt(0, { ...s, flashOvertime: false }), 'IDCT:-0000100R0-----')
+	assert.equal(pkt(0, { ...s, whiteOnly: true }), 'IDCT:-0000100W1-----')
 })
 
 test('stop at zero, stopwatch and overtime', () => {
@@ -241,8 +225,8 @@ test('hold at zero: stage shows 00:00, engine keeps counting overtime', () => {
 	assert.equal(v.timerText, '-00:10')
 	assert.equal(v.held, true)
 	assert.equal(v.stageText, '00:00')
-	assert.equal(v.stageOvertime, false)
-	assert.equal(remoteDisplayPacket(stageView(v)), 'IDCT:+0000000G0-----')
+	assert.equal(stageView(v).seconds, 0)
+	assert.equal(remoteDisplayPacket(v, 0, s), 'IDCT:+0000000R1-----') // held at zero, still flashing
 	// before zero, and in the other modes, nothing is held
 	assert.equal(buildView(e.snapshot(), { ...s, atZero: 'count' }).stageText, '-00:10')
 	e.reset(3000)
