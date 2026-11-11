@@ -92,6 +92,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .msg-live.on { color: #ffd166; }
 .quick { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .quick .btn { padding: 4px 9px; font-size: 12px; border-radius: 999px; }
+.quick:empty { display: none; }
+.quick-saved .btn { border-style: dashed; }
+.quick-saved .del { margin-left: 6px; opacity: 0.55; }
+.quick-saved .del:hover { opacity: 1; }
 
 .footer { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
 .footer-buttons { display: flex; gap: 8px; }
@@ -114,7 +118,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .dlg-foot { display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--line); }
 .spacer { flex: 1; }
 .row { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; }
-.row select, .row input[type='text'], .row input[type='number'], .preset-edit input, .sounds input, #quickEdit { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+.row select, .row input[type='text'], .row input[type='number'], .preset-edit input, .sounds input, #quickEdit, #savedEdit { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .grid2 label { display: flex; gap: 8px; align-items: center; }
 .colors { flex-wrap: wrap; gap: 16px; }
@@ -122,7 +126,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 input[type='color'] { width: 36px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 4px; background: none; }
 .w-small { width: 90px; }
 .note { color: var(--muted); font-size: 12px; }
-#quickEdit { width: 100%; }
+#quickEdit, #savedEdit { width: 100%; }
 .preset-edit { display: grid; grid-template-columns: 24px 1fr 110px; gap: 6px 8px; align-items: center; }
 .preset-edit .n { color: var(--muted); text-align: right; }
 .sounds { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }

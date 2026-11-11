@@ -8,10 +8,10 @@ A countdown timer for show operators that runs on Windows and macOS. It speaks t
 
 | Platform | File |
 |---|---|
-| Windows installer (recommended) | [TinRoof-Timer-Setup-1.1.0.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.0/TinRoof-Timer-Setup-1.1.0.exe) |
-| Windows portable (no install) | [TinRoof-Timer-1.1.0-Portable.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.0/TinRoof-Timer-1.1.0-Portable.exe) |
-| macOS (Apple Silicon and Intel) | [TinRoof-Timer-1.1.0-macOS-Universal.dmg](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.0/TinRoof-Timer-1.1.0-macOS-Universal.dmg) |
-| Bitfocus Companion module (optional) | [tinroof-timer-companion-module-1.1.0.tgz](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.0/tinroof-timer-companion-module-1.1.0.tgz) |
+| Windows installer (recommended) | [TinRoof-Timer-Setup-1.1.1.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.1/TinRoof-Timer-Setup-1.1.1.exe) |
+| Windows portable (no install) | [TinRoof-Timer-1.1.1-Portable.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.1/TinRoof-Timer-1.1.1-Portable.exe) |
+| macOS (Apple Silicon and Intel) | [TinRoof-Timer-1.1.1-macOS-Universal.dmg](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.1/TinRoof-Timer-1.1.1-macOS-Universal.dmg) |
+| Bitfocus Companion module (optional) | [tinroof-timer-companion-module-1.1.0.tgz](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.1.1/tinroof-timer-companion-module-1.1.0.tgz) |
 
 The builds aren't code-signed yet. On Windows, click **More info → Run anyway** the first time. On a Mac, right-click the app and choose **Open**. The [release notes](https://github.com/BasilChessman/tinroof-timer/releases/latest) explain which file to pick.
 
@@ -26,7 +26,7 @@ The builds aren't code-signed yet. On Windows, click **More info → Run anyway*
 | **Speaker presets**: a running order of names with a duration or end time each; click to start, Next/Prev, ✓ when started, CSV import/export | | ✓ |
 | Current and next speaker shown on the output | | ✓ |
 | Elapsed time and expected end time | ✓ | ✓ |
-| Messages (90 characters, flash on arrival) | ✓ | ✓ plus re-flash and quick-message buttons |
+| Messages (90 characters, flash on arrival) | ✓ | ✓ plus re-flash, quick-message buttons and your own saved messages |
 | Display modes Timer / Clock / Black / Test pattern | ✓ | ✓ |
 | Full-screen output on a chosen display (any resolution or portrait) | ✓ | ✓ (automatic = first non-primary display) |
 | Amber/red warning times, white-only mode, stop at zero | ✓ | ✓ with adjustable colours and seconds-level thresholds |

@@ -39,6 +39,7 @@ const DEFAULTS = Object.freeze({
 	fontFamily: 'system',
 	messageFlash: true,
 	quickMessages: ['Please wrap up', '5 minutes left', 'Time is up', 'Take questions now', 'Speak up please', 'Look at the camera'],
+	savedMessages: [], // the user's own messages, shown after the quick messages
 	showSpeakerName: true,
 	showNextSpeaker: false,
 	// Speaker presets: [{ id, name, type: 'duration'|'until', seconds, until }]

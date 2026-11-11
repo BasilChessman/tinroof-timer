@@ -124,9 +124,12 @@
         <button id="btnMsgSend" class="btn btn-accent">Send</button>
         <button id="btnMsgFlash" class="btn">Flash</button>
         <button id="btnMsgClear" class="btn">Clear</button>
+        <button id="btnMsgSave" class="btn" title="Save the typed message to My messages">Save</button>
         <span class="msg-live" id="msgLive"></span>
       </div>
       <div class="quick" id="quickMsgs"></div>
+      <div class="quick quick-saved" id="savedMsgs"></div>
+      <div class="toast" id="msgToast" hidden></div>
     </div>
   </section>
 
@@ -216,6 +219,8 @@
         <div class="preset-edit" id="presetEdit"></div>
         <h3>Quick messages</h3>
         <textarea id="quickEdit" rows="6" placeholder="One message per line"></textarea>
+        <h3>My messages</h3>
+        <textarea id="savedEdit" rows="6" placeholder="One message per line (or type a message in the main window and press Save)"></textarea>
       </div>
 
       <div class="tab" data-tab="sounds" hidden>

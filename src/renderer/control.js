@@ -150,13 +150,12 @@ async function clickPreset(n, save, btn) {
 		}
 	} else await api.cmd('loadPreset', n)
 }
-let toastTimer
-function toast(text) {
-	const t = $('presetToast')
+function toast(text, id = 'presetToast') {
+	const t = $(id)
 	t.textContent = text
 	t.hidden = false
-	clearTimeout(toastTimer)
-	toastTimer = setTimeout(() => (t.hidden = true), 2500)
+	clearTimeout(t.timer)
+	t.timer = setTimeout(() => (t.hidden = true), 2500)
 }
 function markActivePreset() {
 	if (!view || !settings) return
@@ -181,24 +180,58 @@ function sendMessage() {
 $('btnMsgSend').onclick = sendMessage
 $('btnMsgClear').onclick = () => api.cmd('clearMessage')
 $('btnMsgFlash').onclick = () => api.cmd('flashMessage')
+const SAVED_MAX = 50
+$('btnMsgSave').onclick = () => {
+	const t = msgText.value.replace(/[\r\n]+/g, ' ').trim()
+	if (!t) return toast('Type a message first, then press Save.', 'msgToast')
+	const saved = settings.savedMessages || []
+	if (saved.includes(t) || (settings.quickMessages || []).includes(t)) return toast('That message is already in the list.', 'msgToast')
+	if (saved.length >= SAVED_MAX) return toast(`You can save up to ${SAVED_MAX} messages. Remove one first.`, 'msgToast')
+	setSaved([...saved, t])
+	toast('Message saved.', 'msgToast')
+}
+// Update locally first so quick successive saves/removals build on each other
+function setSaved(list) {
+	settings.savedMessages = list
+	renderQuick()
+	api.setSettings({ savedMessages: list })
+}
+function messageButton(q) {
+	const b = document.createElement('button')
+	b.className = 'btn'
+	b.textContent = q
+	b.title = 'Send this message (Shift-click to copy into the editor)'
+	b.onclick = (e) => {
+		if (e.shiftKey) {
+			msgText.value = q
+			msgText.dispatchEvent(new Event('input'))
+			msgText.focus()
+		} else api.cmd('message', q)
+	}
+	return b
+}
 function renderQuick() {
 	const box = $('quickMsgs')
 	box.innerHTML = ''
-	for (const q of settings.quickMessages || []) {
-		if (!q.trim()) continue
-		const b = document.createElement('button')
-		b.className = 'btn'
-		b.textContent = q
-		b.title = 'Send this message (Shift-click to copy into the editor)'
-		b.onclick = (e) => {
-			if (e.shiftKey) {
-				msgText.value = q
-				msgText.dispatchEvent(new Event('input'))
-				msgText.focus()
-			} else api.cmd('message', q)
+	for (const q of settings.quickMessages || []) if (q.trim()) box.appendChild(messageButton(q))
+	const mine = $('savedMsgs')
+	mine.innerHTML = ''
+	;(settings.savedMessages || []).forEach((q, i) => {
+		const b = messageButton(q)
+		b.title = 'Your saved message. Click to send, Shift-click to copy into the editor, × to remove'
+		const del = document.createElement('span')
+		del.className = 'del'
+		del.textContent = '×'
+		del.title = 'Remove this saved message'
+		del.onclick = (e) => {
+			e.stopPropagation()
+			const saved = [...settings.savedMessages]
+			saved.splice(i, 1)
+			setSaved(saved)
 		}
-		box.appendChild(b)
-	}
+		b.appendChild(del)
+		mine.appendChild(b)
+	})
 }
 
 // ---------------------------------------------------------------- footer
@@ -321,6 +354,7 @@ function fillSettingsForm() {
 	renderPresetEdit()
 	renderSpeakerEdit()
 	$('quickEdit').value = (settings.quickMessages || []).join('\n')
+	$('savedEdit').value = (settings.savedMessages || []).join('\n')
 	renderSounds()
 }
 
@@ -370,6 +404,9 @@ function renderPresetEdit() {
 
 $('quickEdit').addEventListener('change', () =>
 	api.setSettings({ quickMessages: $('quickEdit').value.split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 24) }),
+)
+$('savedEdit').addEventListener('change', () =>
+	api.setSettings({ savedMessages: $('savedEdit').value.split('\n').map((s) => s.trim().slice(0, 90)).filter(Boolean).slice(0, SAVED_MAX) }),
 )
 
 function renderSounds() {
@@ -637,7 +674,8 @@ $('btnSpkDeleteAll').onclick = () => {
 // ---------------------------------------------------------------- settings sync
 function applySettings(s) {
 	const presetsChanged = !settings || JSON.stringify(settings.presets) !== JSON.stringify(s.presets)
-	const quickChanged = !settings || JSON.stringify(settings.quickMessages) !== JSON.stringify(s.quickMessages)
+	const quickChanged =
+		!settings || JSON.stringify([settings.quickMessages, settings.savedMessages]) !== JSON.stringify([s.quickMessages, s.savedMessages])
 	const soundsChanged = !settings || JSON.stringify(settings.sounds) !== JSON.stringify(s.sounds)
 	const speakersChanged =
 		!settings ||
@@ -649,7 +687,10 @@ function applySettings(s) {
 		renderPresets()
 		if (dlg.open) renderPresetEdit()
 	}
-	if (quickChanged) renderQuick()
+	if (quickChanged) {
+		renderQuick()
+		if (dlg.open && document.activeElement !== $('savedEdit')) $('savedEdit').value = (s.savedMessages || []).join('\n')
+	}
 	if (soundsChanged && dlg.open) renderSounds()
 	if (speakersChanged) renderSpeakers()
 	if (speakerRowsChanged && dlg.open) renderSpeakerEdit()

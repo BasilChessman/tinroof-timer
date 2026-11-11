@@ -83,6 +83,7 @@ class TimerEngine extends EventEmitter {
 		this.mode = 'TIMER'
 		this.message = ''
 		this.messageSeq = 0 // increments every time a message is (re)sent, used to trigger flash
+		this.messageFlashSeq = 0 // increments only on an explicit flash request (always flashes)
 		this.finished = false // reached zero with stopAtZero
 		this.target = null // epoch ms when counting down to a time of day
 		this.label = '' // e.g. current speaker name
@@ -299,7 +300,7 @@ class TimerEngine extends EventEmitter {
 	/** Re-trigger the flash on the current message. */
 	flashMessage() {
 		if (!this.message) return false
-		this.messageSeq++
+		this.messageFlashSeq++
 		this.emit('change', 'message')
 		return true
 	}
@@ -332,6 +333,7 @@ class TimerEngine extends EventEmitter {
 			progress,
 			message: this.message,
 			messageSeq: this.messageSeq,
+			messageFlashSeq: this.messageFlashSeq,
 			finished: this.finished,
 			target: this.target, // epoch ms in time-of-day mode, else null
 			label: this.label,

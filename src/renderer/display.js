@@ -36,9 +36,13 @@
 		const progress = el('div', 'sd-progress', content)
 		const bar = el('div', 'sd-progress-bar', progress)
 		const canvas = el('canvas', 'sd-test', root)
+		// Drop the flash class once it has played. If it stayed on, the animation would replay
+		// every time the message box goes from hidden to shown, i.e. on every new message.
+		msg.addEventListener('animationend', () => msg.classList.remove('sd-msg-flash'))
 
 		let last = {}
 		let lastSeq = -1
+		let lastFlashSeq = null
 		let msgFitKey = ''
 
 		function fit(elm, box, key, maxFrac) {
@@ -204,15 +208,20 @@
 			// message
 			const hasMsg = !!v.message
 			msgWrap.style.display = hasMsg ? '' : 'none'
+			if (!hasMsg) msg.classList.remove('sd-msg-flash')
 			main.classList.toggle('sd-has-msg', hasMsg)
 			main.classList.toggle('sd-msg-only', hasMsg && mode === 'BLACK')
 			if (msg.textContent !== v.message) msg.textContent = v.message
-			if (hasMsg && v.messageSeq !== lastSeq && s.messageFlash) {
+			// New messages flash only if the setting is on; an explicit Flash request always flashes.
+			const newMsg = v.messageSeq !== lastSeq && s.messageFlash
+			const forced = lastFlashSeq !== null && v.messageFlashSeq !== lastFlashSeq
+			if (hasMsg && (newMsg || forced)) {
 				msg.classList.remove('sd-msg-flash')
 				void msg.offsetWidth // restart animation
 				msg.classList.add('sd-msg-flash')
 			}
 			lastSeq = v.messageSeq
+			lastFlashSeq = v.messageFlashSeq
 
 			// sizing (only recomputes when text length / box changes)
 			const lenKey = text.replace(/\d/g, '0') + '|' + hasMsg + '|' + mode + '|' + topbar.style.display + '|' + nextLine.style.display + '|' + speakerLine.style.display + '|' + s.fontFamily
