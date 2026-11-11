@@ -80,19 +80,26 @@
 			const w = box.clientWidth
 			const h = box.clientHeight
 			if (!w || !h) return
-			const k = msg.textContent + '|' + w + 'x' + h
+			const k = msg.textContent + '|' + w + 'x' + h + '|' + root.style.getPropertyValue('--sd-font')
 			if (k === msgFitKey) return
 			msgFitKey = k
+			const fits = (size) => {
+				msg.style.fontSize = size + 'px'
+				return msg.scrollHeight <= h * 0.96 && msg.scrollWidth <= w * 0.98
+			}
 			// binary search the largest font that fits in the box with wrapping
 			let lo = 8
 			let hi = Math.max(12, h)
 			for (let i = 0; i < 14; i++) {
 				const mid = (lo + hi) / 2
-				msg.style.fontSize = mid + 'px'
-				if (msg.scrollHeight <= h * 0.96 && msg.scrollWidth <= w * 0.98) lo = mid
+				if (fits(mid)) lo = mid
 				else hi = mid
 			}
-			msg.style.fontSize = lo.toFixed(1) + 'px'
+			// Round down, never up, and leave a little slack: right at the fitting size a line can
+			// sit on the edge of wrapping, and any extra wrap doubles the height and clips the text.
+			let size = Math.floor(lo * 0.98 * 10) / 10
+			while (size > 8 && !fits(size)) size = Math.max(8, Math.floor(size * 0.95 * 10) / 10)
+			msg.style.fontSize = size + 'px'
 		}
 
 		function drawTest() {

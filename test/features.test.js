@@ -118,3 +118,84 @@ test('speakersLine lists speakers with done flags', () => {
 		{ n: 2, name: 'Bob', time: '@10:30', done: false },
 	])
 })
+
+test('run records: actual time excludes pauses and includes overtime', () => {
+	let t = at(9, 0)
+	const e = new TimerEngine({ now: () => t })
+	const runs = []
+	e.on('run', (r) => runs.push(r))
+	e.reset(300000)
+	e.setLabel('Alice', 'a1')
+	e.go()
+	t += 60000
+	e.pause()
+	t += 30000 // paused time is not counted
+	e.go()
+	t += 300000 // 6 minutes running in total: 1 minute over
+	assert.equal(runs.length, 0)
+	e.reset(600000) // next speaker's time ends Alice's run
+	assert.equal(runs.length, 1)
+	assert.deepEqual(
+		{ ...runs[0] },
+		{ label: 'Alice', tag: 'a1', startedAt: at(9, 0), endedAt: at(9, 6, 30), stopwatch: false, plannedSeconds: 300, ranSeconds: 360, overSeconds: 60 }
+	)
+	// finishing early: no overtime, planned is still the full time (including jogs)
+	e.go()
+	t += 120000
+	e.jog(60000)
+	t += 60000
+	e.reset()
+	assert.equal(runs.length, 2)
+	assert.equal(runs[1].label, '')
+	assert.equal(runs[1].plannedSeconds, 660)
+	assert.equal(runs[1].ranSeconds, 180)
+	assert.equal(runs[1].overSeconds, 0)
+	// reset with nothing run, or an instant start/stop, records nothing
+	e.reset()
+	e.go()
+	e.reset()
+	assert.equal(runs.length, 2)
+})
+
+test('run records: stop at zero ends the run at the planned time', () => {
+	let t = at(9, 0)
+	const e = new TimerEngine({ now: () => t, stopAtZero: true })
+	const runs = []
+	e.on('run', (r) => runs.push(r))
+	e.start(5000)
+	t += 9000
+	e.snapshot()
+	assert.equal(runs.length, 1)
+	assert.equal(runs[0].ranSeconds, 5)
+	assert.equal(runs[0].plannedSeconds, 5)
+	assert.equal(runs[0].overSeconds, 0)
+	e.reset()
+	assert.equal(runs.length, 1)
+})
+
+test('run records: time-of-day overtime, and stopwatch runs', () => {
+	let t = at(9, 0)
+	const e = new TimerEngine({ now: () => t })
+	const runs = []
+	e.on('run', (r) => runs.push(r))
+	e.startTarget(at(9, 10))
+	t = at(9, 12, 15)
+	e.endRun()
+	assert.equal(runs[0].plannedSeconds, 600)
+	assert.equal(runs[0].ranSeconds, 735)
+	assert.equal(runs[0].overSeconds, 135)
+	e.endRun() // already ended: no duplicate
+	e.start(0)
+	t += 42000
+	e.reset()
+	assert.equal(runs.length, 2)
+	assert.equal(runs[1].stopwatch, true)
+	assert.equal(runs[1].ranSeconds, 42)
+	assert.equal(runs[1].overSeconds, 0)
+})
+
+test('run log CSV', () => {
+	const { toCsv } = require('../src/main/runlog')
+	const csv = toCsv([{ label: 'Smith, Jane', startedAt: at(9, 0), endedAt: at(9, 6, 30), plannedSeconds: 300, ranSeconds: 360, overSeconds: 60 }])
+	assert.equal(csv, 'Speaker,Date,Started,Ended,Planned,Actual,Over\r\n"Smith, Jane",2026-11-10,09:00:00,09:06:30,00:05:00,00:06:00,00:01:00\r\n')
+})

@@ -18,7 +18,7 @@
 
     <div class="status">
       <div class="stat stat-main">
-        <div class="stat-label">Remaining</div>
+        <div class="stat-label" id="stRemainingLabel">Remaining</div>
         <div class="stat-value" id="stRemaining">--:--:--</div>
       </div>
       <div class="stat">
@@ -57,6 +57,7 @@
     <div class="seg right-tabs" id="rightTabs">
       <button data-rtab="speakers">Speakers</button>
       <button data-rtab="time">Time &amp; Presets</button>
+      <button data-rtab="log">Run log</button>
     </div>
 
     <div class="rtab" data-rtab="speakers">
@@ -72,6 +73,28 @@
           <span class="spacer"></span>
           <button id="btnSpkClear" class="btn btn-small" title="Clear the ✓ marks">Clear ✓</button>
           <button id="btnSpkEdit" class="btn btn-small">Edit list…</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="rtab" data-rtab="log" hidden>
+      <div class="panel panel-log">
+        <div class="panel-title">
+          <span>Run log <span class="hint" id="logCount"></span></span>
+          <span class="hint">how long each timer actually ran</span>
+        </div>
+        <div class="log-wrap">
+          <table class="log">
+            <thead><tr><th>Speaker</th><th>Started</th><th>Planned</th><th>Actual</th><th>Over</th></tr></thead>
+            <tbody id="logBody"></tbody>
+          </table>
+          <div class="spk-empty" id="logEmpty">No runs yet. Each time a timer is started and then reset, finished<br>or replaced by the next speaker, a line is added here.</div>
+        </div>
+        <div class="spk-buttons">
+          <span class="hint" id="logTotal"></span>
+          <span class="spacer"></span>
+          <button id="btnLogExport" class="btn btn-small">Export CSV…</button>
+          <button id="btnLogClear" class="btn btn-small">Clear log</button>
         </div>
       </div>
     </div>
@@ -162,6 +185,7 @@
         <label class="row"><input type="checkbox" data-k="alwaysShowHours"> Always show hours</label>
         <label class="row"><input type="checkbox" data-k="stopAtZero"> Stop at zero (otherwise counts into overtime)</label>
         <label class="row"><input type="checkbox" data-k="flashOvertime"> Flash timer when overtime</label>
+        <label class="row">Message at zero <input type="text" data-k="zeroMessage" maxlength="90" class="grow" placeholder="e.g. Time is up (leave empty for none)"></label>
         <label class="row">Overtime prefix
           <select data-k="overtimeSign"><option value="-">− (minus)</option><option value="+">+ (plus)</option><option value="">none</option></select>
         </label>

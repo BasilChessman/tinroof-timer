@@ -125,6 +125,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .colors label { display: flex; align-items: center; gap: 6px; }
 input[type='color'] { width: 36px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 4px; background: none; }
 .w-small { width: 90px; }
+.row input.grow { flex: 1; min-width: 0; }
 .note { color: var(--muted); font-size: 12px; }
 #quickEdit, #savedEdit { width: 100%; }
 .preset-edit { display: grid; grid-template-columns: 24px 1fr 110px; gap: 6px 8px; align-items: center; }
@@ -138,11 +139,22 @@ input[type='color'] { width: 36px; height: 26px; padding: 0; border: 1px solid v
 .about h2 { margin-top: 0; }
 
 /* right column tabs */
-.right-tabs { grid-template-columns: 1fr 1fr; flex: 0 0 auto; }
+.right-tabs { grid-template-columns: 1fr 1fr 1fr; flex: 0 0 auto; }
 .col-right > .panel { flex: 0 0 auto; }
 .rtab { display: flex; flex-direction: column; gap: 12px; flex: 0 0 auto; }
 .rtab[hidden] { display: none; }
-.rtab[data-rtab='speakers'] { flex: 1 0 auto; }
+.rtab[data-rtab='speakers'], .rtab[data-rtab='log'] { flex: 1 0 auto; }
+.log-wrap { overflow: auto; min-height: 120px; max-height: 46vh; }
+.log { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13px; }
+.log th { position: sticky; top: 0; background: var(--panel); text-align: left; font-weight: 600; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.log td { padding: 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.log td:first-child { white-space: normal; font-weight: 600; width: 100%; }
+.log td.over { color: var(--danger); font-weight: 700; }
+.log td.muted, .log tr.live td { color: var(--muted); }
+.log tr.live td.over { color: var(--danger); }
+.log tr.live td:first-child::after { content: ' · running'; font-weight: 400; color: var(--go); }
+.spk-actual { display: block; font-size: 11px; }
+.spk-actual.over { color: #ff6b6b; }
 .seg-mini { display: inline-grid; grid-template-columns: auto auto; text-transform: none; letter-spacing: 0; }
 .seg-mini button { padding: 3px 9px; font-size: 11px; font-weight: 600; }
 .panel-title > span:first-child { display: inline-flex; gap: 6px; align-items: center; }

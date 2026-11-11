@@ -10,13 +10,16 @@ contextBridge.exposeInMainWorld('api', {
 	getNetInfo: () => ipcRenderer.invoke('net:info'),
 	importSpeakers: () => ipcRenderer.invoke('speakers:import'),
 	exportSpeakers: () => ipcRenderer.invoke('speakers:export'),
+	getRunLog: () => ipcRenderer.invoke('runlog:get'),
+	clearRunLog: () => ipcRenderer.invoke('runlog:clear'),
+	exportRunLog: () => ipcRenderer.invoke('runlog:export'),
 	pickSound: () => ipcRenderer.invoke('sound:pick'),
 	soundUrl: (file) => ipcRenderer.invoke('sound:url', file),
 	appInfo: () => ipcRenderer.invoke('app:info'),
 	openExternal: (url) => ipcRenderer.invoke('open:external', url),
 	focusControl: () => ipcRenderer.send('focus:control'),
 	on: (channel, fn) => {
-		const allowed = ['view', 'settings', 'play-sound', 'net', 'open-settings', 'open-about']
+		const allowed = ['view', 'settings', 'play-sound', 'net', 'open-settings', 'open-about', 'runlog']
 		if (!allowed.includes(channel)) return
 		ipcRenderer.on(channel, (_e, data) => fn(data))
 	},

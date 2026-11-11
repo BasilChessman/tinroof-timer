@@ -87,6 +87,8 @@ class TimerEngine extends EventEmitter {
 		this.finished = false // reached zero with stopAtZero
 		this.target = null // epoch ms when counting down to a time of day
 		this.label = '' // e.g. current speaker name
+		this.tag = '' // caller's id for the label (e.g. speaker id), copied into run records
+		this.run = null // the run in progress: set by go() from stopped, ended by reset/finish
 	}
 
 	// ---- derived values -------------------------------------------------
@@ -146,7 +148,39 @@ class TimerEngine extends EventEmitter {
 		this.elapsedAtAnchor += left
 		this.remainingAtAnchor = 0
 		this.finished = true
+		this._endRun()
 		this.emit('change', 'finished')
+	}
+
+	/**
+	 * Close the current run (start from stopped until reset, new time, or stop-at-zero) and
+	 * emit a 'run' record: how long the timer actually ran, excluding pauses, and the overtime.
+	 */
+	_endRun() {
+		if (!this.run) return
+		const remaining = this.remainingMs() // may hit stop-at-zero, which ends the run itself
+		if (!this.run) return
+		const run = this.run
+		this.run = null
+		const elapsed = this.elapsedMs()
+		if (elapsed < 1000) return // started and stopped straight away: not worth recording
+		const ran = Math.floor(elapsed / 1000)
+		const rem = this.stopwatch ? 0 : displaySeconds(remaining)
+		this.emit('run', {
+			label: run.label,
+			tag: run.tag,
+			startedAt: run.startedAt,
+			endedAt: this.now(),
+			stopwatch: this.stopwatch,
+			plannedSeconds: this.stopwatch ? 0 : Math.max(0, ran + rem),
+			ranSeconds: ran,
+			overSeconds: Math.max(0, -rem),
+		})
+	}
+
+	/** End the current run now (e.g. when quitting) without changing the timer. */
+	endRun() {
+		this._endRun()
 	}
 
 	go() {
@@ -159,6 +193,7 @@ class TimerEngine extends EventEmitter {
 			this.finished = false
 		}
 		this.anchor = this.now()
+		if (!this.run) this.run = { label: this.label, tag: this.tag, startedAt: this.anchor }
 		this.state = STATES.PLAYING
 		this.emit('change', 'go')
 		return true
@@ -185,11 +220,13 @@ class TimerEngine extends EventEmitter {
 	 * time-of-day mode and clears the label.
 	 */
 	reset(ms) {
+		if (ms != null && (!Number.isFinite(ms) || ms < 0 || ms > MAX_MS)) return false
+		this._endRun()
 		if (ms != null) {
-			if (!Number.isFinite(ms) || ms < 0 || ms > MAX_MS) return false
 			this.duration = Math.round(ms)
 			this.target = null
 			this.label = ''
+			this.tag = ''
 		}
 		this.state = STATES.STOPPED
 		this.elapsedAtAnchor = 0
@@ -212,8 +249,10 @@ class TimerEngine extends EventEmitter {
 	setTarget(epochMs) {
 		const left = epochMs - this.now()
 		if (!Number.isFinite(epochMs) || left <= 0 || left > MAX_MS) return false
+		this._endRun()
 		this.target = epochMs
 		this.label = ''
+		this.tag = ''
 		this.duration = left
 		this.remainingAtAnchor = left
 		this.elapsedAtAnchor = 0
@@ -227,8 +266,9 @@ class TimerEngine extends EventEmitter {
 		return this.setTarget(epochMs) && this.go()
 	}
 
-	setLabel(text) {
+	setLabel(text, tag = '') {
 		this.label = String(text ?? '').slice(0, 60)
+		this.tag = String(tag ?? '')
 		this.emit('change', 'label')
 		return true
 	}

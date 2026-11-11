@@ -260,7 +260,9 @@ setInterval(refreshNet, 3000)
 api.on('view', (v) => {
 	view = v
 	if (settings) preview.update(v, settings)
-	$('stRemaining').textContent = (v.overtime ? '-' : '') + v.time
+	// In overtime the box shows how far over the timer is, rather than a negative remaining time.
+	$('stRemainingLabel').textContent = v.overtime ? 'Over by' : 'Remaining'
+	$('stRemaining').textContent = (v.overtime ? '+' : '') + v.time
 	$('stRemaining').style.color = v.color
 	$('stElapsed').textContent = v.elapsed
 	$('stEnd').textContent = v.endText || '—'
@@ -280,6 +282,7 @@ api.on('view', (v) => {
 	$('previewTag').textContent = settings?.hideDisplay ? 'PREVIEW (output hidden)' : 'OUTPUT'
 	markActivePreset()
 	markSpeakers()
+	updateLiveLogRow()
 })
 
 // ---------------------------------------------------------------- sounds
@@ -509,7 +512,15 @@ function renderSpeakers() {
 		b.innerHTML = '<span class="spk-n"></span><span class="spk-name"></span><span class="spk-time"></span><span class="spk-done"></span>'
 		b.querySelector('.spk-n').textContent = i + 1
 		b.querySelector('.spk-name').textContent = sp.name
-		b.querySelector('.spk-time').textContent = speakerTimeText(sp)
+		const timeEl = b.querySelector('.spk-time')
+		timeEl.textContent = speakerTimeText(sp)
+		const last = lastRunBySpeaker.get(sp.id)
+		if (last && done.has(sp.id)) {
+			const a = document.createElement('span')
+			a.className = 'spk-actual' + (last.overSeconds > 0 ? ' over' : '')
+			a.textContent = `ran ${fmtShort(last.ranSeconds)}` + (last.overSeconds > 0 ? ` · +${fmtShort(last.overSeconds)} over` : '')
+			timeEl.appendChild(a)
+		}
 		b.querySelector('.spk-done').textContent = done.has(sp.id) ? '✓' : ''
 		b.classList.toggle('done', done.has(sp.id))
 		b.onclick = (e) => api.cmd('speaker', i + 1, !e.shiftKey)
@@ -539,6 +550,73 @@ $('btnSpkNext').onclick = (e) => api.cmd('speaker', 'NEXT', !e.shiftKey)
 $('btnSpkPrev').onclick = (e) => api.cmd('speaker', 'PREV', !e.shiftKey)
 $('btnSpkClear').onclick = () => api.cmd('clearSpeakersDone')
 $('btnSpkEdit').onclick = () => openSettings('speakers')
+
+// ---------------------------------------------------------------- run log
+let runLog = []
+let lastRunBySpeaker = new Map()
+function fmtClockTime(ms) {
+	const d = new Date(ms)
+	const today = new Date().toDateString() === d.toDateString()
+	const t = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+	return today ? t : `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${t}`
+}
+function logCell(tr, text, cls) {
+	const td = document.createElement('td')
+	td.textContent = text
+	if (cls) td.className = cls
+	tr.appendChild(td)
+	return td
+}
+function renderRunLog(entries) {
+	runLog = entries || []
+	lastRunBySpeaker = new Map()
+	for (const e of runLog) if (e.speakerId) lastRunBySpeaker.set(e.speakerId, e)
+	const body = $('logBody')
+	body.innerHTML = ''
+	// the run in progress (filled in by updateLiveLogRow), then the newest first
+	const live = document.createElement('tr')
+	live.className = 'live'
+	live.id = 'logLive'
+	live.hidden = true
+	body.appendChild(live)
+	for (let i = runLog.length - 1; i >= 0; i--) {
+		const e = runLog[i]
+		const tr = document.createElement('tr')
+		logCell(tr, e.label || (e.stopwatch ? 'Stopwatch' : 'Timer'), e.label ? '' : 'muted')
+		logCell(tr, fmtClockTime(e.startedAt))
+		logCell(tr, e.stopwatch ? '—' : fmtShort(e.plannedSeconds))
+		logCell(tr, fmtShort(e.ranSeconds))
+		logCell(tr, e.overSeconds > 0 ? '+' + fmtShort(e.overSeconds) : '—', e.overSeconds > 0 ? 'over' : 'muted')
+		body.appendChild(tr)
+	}
+	$('logEmpty').hidden = runLog.length > 0
+	$('logCount').textContent = runLog.length ? `(${runLog.length})` : ''
+	const overs = runLog.filter((e) => e.overSeconds > 0)
+	$('logTotal').textContent = overs.length
+		? `${overs.length} of ${runLog.length} ran over · ${fmtShort(overs.reduce((a, e) => a + e.overSeconds, 0))} in total`
+		: ''
+	if (settings) renderSpeakers()
+	updateLiveLogRow()
+}
+function updateLiveLogRow() {
+	const row = $('logLive')
+	if (!row || !view) return
+	// a run is in progress once the timer has been started and not yet reset
+	const running = view.state !== 'STOPPED' && view.elapsedSeconds > 0
+	row.hidden = !running
+	if (!running) return
+	row.innerHTML = ''
+	logCell(row, view.speakerName || (view.stopwatch ? 'Stopwatch' : 'Timer'))
+	logCell(row, '')
+	logCell(row, view.stopwatch ? '—' : fmtShort(view.elapsedSeconds + view.seconds))
+	logCell(row, fmtShort(view.elapsedSeconds))
+	logCell(row, view.overtime ? '+' + fmtShort(-view.seconds) : '—', view.overtime ? 'over' : 'muted')
+	$('logEmpty').hidden = true
+}
+api.on('runlog', renderRunLog)
+api.getRunLog().then(renderRunLog)
+$('btnLogExport').onclick = () => api.exportRunLog()
+$('btnLogClear').onclick = () => api.clearRunLog()
 
 // ---- editor (Settings → Speakers)
 function parseHMS(text) {

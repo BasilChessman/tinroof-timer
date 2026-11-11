@@ -25,6 +25,7 @@ const DEFAULTS = Object.freeze({
 	colorRed: '#FF2020',
 	colorWhite: '#FFFFFF',
 	flashOvertime: true,
+	zeroMessage: '', // sent to the output when a countdown reaches zero ('' = off)
 	// Display
 	outputDisplay: 'auto', // 'auto' (first non-primary), 'none', or a display id
 	hideDisplay: false,

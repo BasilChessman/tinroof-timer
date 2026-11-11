@@ -8,10 +8,10 @@ A countdown timer for show operators that runs on Windows and macOS. It speaks t
 
 | Platform | File |
 |---|---|
-| Windows installer (recommended) | [TinRoof-Timer-Setup-1.2.0.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.2.0/TinRoof-Timer-Setup-1.2.0.exe) |
-| Windows portable (no install) | [TinRoof-Timer-1.2.0-Portable.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.2.0/TinRoof-Timer-1.2.0-Portable.exe) |
-| macOS (Apple Silicon and Intel) | [TinRoof-Timer-1.2.0-macOS-Universal.dmg](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.2.0/TinRoof-Timer-1.2.0-macOS-Universal.dmg) |
-| Bitfocus Companion module (optional) | [tinroof-timer-companion-module-1.2.0.tgz](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.2.0/tinroof-timer-companion-module-1.2.0.tgz) |
+| Windows installer (recommended) | [TinRoof-Timer-Setup-1.3.0.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.3.0/TinRoof-Timer-Setup-1.3.0.exe) |
+| Windows portable (no install) | [TinRoof-Timer-1.3.0-Portable.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.3.0/TinRoof-Timer-1.3.0-Portable.exe) |
+| macOS (Apple Silicon and Intel) | [TinRoof-Timer-1.3.0-macOS-Universal.dmg](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.3.0/TinRoof-Timer-1.3.0-macOS-Universal.dmg) |
+| Bitfocus Companion module (optional) | [tinroof-timer-companion-module-1.3.0.tgz](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.3.0/tinroof-timer-companion-module-1.3.0.tgz) |
 
 The builds aren't code-signed yet. On Windows, click **More info → Run anyway** the first time. On a Mac, right-click the app and choose **Open**. The [release notes](https://github.com/BasilChessman/tinroof-timer/releases/latest) explain which file to pick.
 
@@ -25,8 +25,9 @@ The builds aren't code-signed yet. On Windows, click **More info → Run anyway*
 | **Count down to a time of day** (e.g. until 10:30) | | ✓ |
 | **Speaker presets**: a running order of names with a duration or end time each; click to start, Next/Prev, ✓ when started, CSV import/export | | ✓ |
 | Current and next speaker shown on the output | | ✓ |
+| **Run log**: how long each timer actually ran and how far over it went, shown per speaker and exportable as CSV | | ✓ |
 | Elapsed time and expected end time | ✓ | ✓ |
-| Messages (90 characters, flash on arrival) | ✓ | ✓ plus re-flash, quick-message buttons and your own saved messages |
+| Messages (90 characters, flash on arrival) | ✓ | ✓ plus re-flash, quick-message buttons and your own saved messages, and an automatic message when the countdown reaches zero |
 | Display modes Timer / Clock / Black / Test pattern | ✓ | ✓ |
 | Full-screen output on a chosen display (any resolution or portrait) | ✓ | ✓ (automatic = first non-primary display) |
 | Amber/red warning times, white-only mode, stop at zero | ✓ | ✓ with adjustable colours and seconds-level thresholds |
@@ -55,6 +56,12 @@ Under **Time & Presets → Set time**, switch to **Until time of day** and enter
 Build the running order in **Settings → Speakers** (or **Edit list…** on the Speakers tab). Each speaker gets a name and either a **duration** or an **end time**. In the main window, click a speaker to load and start their countdown, or Shift-click to load it without starting. **Next ▶** and **◀ Prev** move through the list. Started speakers get a ✓, which **Clear ✓** removes. The current speaker's name, and optionally "Next: …", can be shown on the output.
 
 CSV import and export use one `name, time` row per speaker. The time can be minutes (`10`), `m:ss`, `h:mm:ss`, or `@10:30` for an end time.
+
+## Run log
+
+Every time a timer runs, the **Run log** tab in the main window records who it was for, when it started, the planned time, how long it actually ran and how much it went over. A run starts when you press Go, and ends when you reset, set a new time, start the next speaker, the timer stops at zero, or you quit. Pauses don't count towards the time it ran. The speaker list also shows what each speaker ran (and any overtime) next to their ✓. **Export CSV…** saves the log for giving notes to presenters. The log is kept between sessions, and **Load default settings** doesn't clear it.
+
+While the timer is in overtime, the main window shows **Over by** with the time over, instead of a negative time remaining.
 
 ## Remote-control protocol (TCP 61002)
 
@@ -90,7 +97,7 @@ There are two options:
    - Feedbacks: warning level, traffic-light colours, overtime, counting to a time of day, speaker is current, next or done
    - 86 presets, including 20 speaker buttons that show each speaker's name and time and light up when that speaker is live
 
-   To install it, run `cd companion-module && npm install && npm run package`, then import `tinroof-timer-1.2.0.tgz` in Companion under *Modules → Import module package*.
+   To install it, run `cd companion-module && npm install && npm run package`, then import `tinroof-timer-1.3.0.tgz` in Companion under *Modules → Import module package*.
 
 ## Build
 

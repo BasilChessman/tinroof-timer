@@ -6,6 +6,7 @@ const fs = require('node:fs')
 const { TimerEngine, parseTimeOfDay } = require('./timer')
 const speakersLib = require('./speakers')
 const { Settings } = require('./settings')
+const { RunLog, toCsv: runLogCsv } = require('./runlog')
 const { buildView } = require('./view')
 const { NetworkServices } = require('./network')
 const { COMPAT_VERSION } = require('./protocol')
@@ -20,6 +21,7 @@ if (!app.requestSingleInstanceLock()) {
 
 let settings
 let engine
+let runLog
 let net
 let controlWin = null
 let outputWin = null
@@ -152,12 +154,15 @@ function checkSounds(v) {
 	const cur = v.stopwatch ? null : v.seconds
 	const prev = lastSoundSeconds
 	lastSoundSeconds = cur
-	if (cur == null || prev == null || v.state !== 'PLAYING' || cur >= prev) return
+	// With stop-at-zero the engine is already STOPPED (finished) on the tick that reaches zero.
+	if (cur == null || prev == null || (v.state !== 'PLAYING' && !v.finished) || cur >= prev) return
 	for (const snd of S().sounds) {
 		if (!snd.enabled || !snd.file) continue
 		const at = Number(snd.seconds)
 		if (prev > at && cur <= at) controlWin?.webContents.send('play-sound', snd)
 	}
+	const zeroMsg = String(S().zeroMessage || '').trim()
+	if (zeroMsg && prev > 0 && cur <= 0) engine.setMessage(zeroMsg)
 }
 
 // ------------------------------------------------------------------ actions
@@ -184,7 +189,7 @@ function loadSpeaker(sel, start) {
 		ok = t != null && engine.setTarget(t)
 	} else ok = engine.reset(sp.seconds * 1000)
 	if (!ok) return false
-	engine.setLabel(sp.name)
+	engine.setLabel(sp.name, sp.id)
 	settings.update({ currentSpeaker: idx })
 	if (start) engine.go()
 	pushSettings()
@@ -366,6 +371,21 @@ function registerIpc() {
 		fs.writeFileSync(r.filePath, speakersLib.toCsv(S().speakers))
 		return true
 	})
+	ipcMain.handle('runlog:get', () => runLog.entries)
+	ipcMain.handle('runlog:clear', async () => {
+		if (!runLog.entries.length) return false
+		const r = await dialog.showMessageBox(controlWin, { type: 'question', buttons: ['Cancel', 'Clear log'], defaultId: 0, message: 'Clear the run log?', detail: 'Export it first if you want to keep a copy.' })
+		if (r.response !== 1) return false
+		runLog.clear()
+		controlWin?.webContents.send('runlog', runLog.entries)
+		return true
+	})
+	ipcMain.handle('runlog:export', async () => {
+		const r = await dialog.showSaveDialog(controlWin, { title: 'Export run log', defaultPath: 'run-log.csv', filters: [{ name: 'CSV', extensions: ['csv'] }] })
+		if (r.canceled || !r.filePath) return false
+		fs.writeFileSync(r.filePath, runLogCsv(runLog.entries))
+		return true
+	})
 	ipcMain.handle('sound:pick', async () => {
 		const r = await dialog.showOpenDialog(controlWin, { title: 'Select an audio file', properties: ['openFile'], filters: [{ name: 'Audio', extensions: ['wav', 'mp3', 'ogg', 'm4a', 'aac', 'flac'] }] })
 		return r.canceled ? null : r.filePaths[0]
@@ -410,6 +430,11 @@ app.whenReady().then(() => {
 	settings = new Settings(app.getPath('userData'))
 	engine = new TimerEngine({ stopAtZero: !!S().stopAtZero })
 	engine.reset(S().duration * 1000)
+	runLog = new RunLog(app.getPath('userData'))
+	engine.on('run', (rec) => {
+		runLog.add(rec)
+		controlWin?.webContents.send('runlog', runLog.entries)
+	})
 	engine.on('change', (why) => {
 		if (why === 'go') markSpeakerDone()
 		if ((why === 'reset' || why === 'jog') && engine.target == null) {
@@ -471,6 +496,7 @@ async function snapshotAndQuit(dir) {
 
 app.on('before-quit', () => {
 	quitting = true
+	engine?.endRun() // record a run that is still going
 	net?.stop()
 	if (outputWin && !outputWin.isDestroyed()) outputWin.destroy()
 })
