@@ -111,11 +111,12 @@ function placeOutput(force = false) {
 	outputWin.loadFile(path.join(RENDERER, 'output.html'))
 	outputWin.once('ready-to-show', () => {
 		if (t.fullscreen) {
-			if (isMac) outputWin.setSimpleFullScreen(true)
-			else {
-				outputWin.setBounds(b)
-				outputWin.setAlwaysOnTop(true, 'screen-saver')
-			}
+			// A borderless window covering the display at screen-saver level, which sits above
+			// the menu bar and Dock on that display. Not setSimpleFullScreen on macOS: that hides
+			// the menu bar and Dock app-wide, so they vanish on the main screen as well whenever
+			// TinRoof Timer is the active app.
+			outputWin.setAlwaysOnTop(true, 'screen-saver')
+			outputWin.setBounds(b)
 			outputWin.showInactive()
 		} else outputWin.show()
 		pushSettings()
