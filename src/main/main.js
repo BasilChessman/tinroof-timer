@@ -162,7 +162,7 @@ function checkSounds(v) {
 		if (prev > at && cur <= at) controlWin?.webContents.send('play-sound', snd)
 	}
 	const zeroMsg = String(S().zeroMessage || '').trim()
-	if (zeroMsg && prev > 0 && cur <= 0) engine.setMessage(zeroMsg)
+	if (S().zeroMessageEnabled && zeroMsg && prev > 0 && cur <= 0) engine.setMessage(zeroMsg)
 }
 
 // ------------------------------------------------------------------ actions
@@ -170,6 +170,8 @@ function loadPreset(n) {
 	const p = S().presets[n - 1]
 	if (!p) return false
 	const ok = engine.reset(p.seconds * 1000)
+	// a new timer shouldn't carry the last one's message (e.g. "Time is up")
+	if (ok && engine.message) engine.clearMessage()
 	return ok
 }
 
@@ -189,6 +191,7 @@ function loadSpeaker(sel, start) {
 		ok = t != null && engine.setTarget(t)
 	} else ok = engine.reset(sp.seconds * 1000)
 	if (!ok) return false
+	if (engine.message) engine.clearMessage()
 	engine.setLabel(sp.name, sp.id)
 	settings.update({ currentSpeaker: idx })
 	if (start) engine.go()
@@ -263,7 +266,7 @@ function buildMenu() {
 						const r = await dialog.showMessageBox(controlWin, { type: 'question', buttons: ['Cancel', 'Load defaults'], defaultId: 0, message: 'Are you sure you want to delete current settings and load defaults?' })
 						if (r.response === 1) {
 							settings.resetToDefaults()
-							engine.stopAtZero = S().stopAtZero
+							engine.stopAtZero = S().atZero === 'stop'
 							applySystemSettings()
 							net.restart()
 							placeOutput(true)
@@ -330,7 +333,7 @@ function registerIpc() {
 			patch.currentSpeaker = curId ? patch.speakers.findIndex((x) => x.id === curId) : -1
 		}
 		const changed = settings.update(patch)
-		if ('stopAtZero' in changed) engine.stopAtZero = !!S().stopAtZero
+		if ('atZero' in changed) engine.stopAtZero = S().atZero === 'stop'
 		if ('loadAtStartup' in changed || 'alwaysOnTopControl' in changed) applySystemSettings()
 		if (['tcpPort', 'webPort', 'ssdp'].some((k) => k in changed && changed[k] !== before[k])) net.restart()
 		if (['outputDisplay', 'hideDisplay', 'transparentBackground'].some((k) => k in changed)) placeOutput()
@@ -341,7 +344,7 @@ function registerIpc() {
 	})
 	ipcMain.handle('settings:reset', () => {
 		settings.resetToDefaults()
-		engine.stopAtZero = S().stopAtZero
+		engine.stopAtZero = S().atZero === 'stop'
 		applySystemSettings()
 		net.restart()
 		placeOutput(true)
@@ -428,7 +431,7 @@ function migrateOldSettings() {
 app.whenReady().then(() => {
 	migrateOldSettings()
 	settings = new Settings(app.getPath('userData'))
-	engine = new TimerEngine({ stopAtZero: !!S().stopAtZero })
+	engine = new TimerEngine({ stopAtZero: S().atZero === 'stop' })
 	engine.reset(S().duration * 1000)
 	runLog = new RunLog(app.getPath('userData'))
 	engine.on('run', (rec) => {

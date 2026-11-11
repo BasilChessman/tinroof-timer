@@ -7,6 +7,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const crypto = require('node:crypto')
 const { handleCommand, modeLine, speakersLine, splitLines, remoteDisplayPacket, hivePacket } = require('./protocol')
+const { stageView } = require('./view')
 
 const RENDERER_DIR = path.join(__dirname, '..', 'renderer')
 const STATIC = {
@@ -214,6 +215,7 @@ class NetworkServices {
 	broadcastUdp(view) {
 		const s = this.getSettings()
 		if (!this.udpSockets.length) return
+		view = stageView(view) // UDP feeds stage displays: hold at zero applies
 		const msgs = []
 		if (s.udpBroadcast) msgs.push([Buffer.from(remoteDisplayPacket(view, s.udpId), 'ascii'), 61003])
 		if (s.hiveBroadcast) msgs.push([hivePacket(view, view.warn), 36700])

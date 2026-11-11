@@ -196,7 +196,7 @@
 			// main text
 			let text = ''
 			let color = v.color
-			if (mode === 'TIMER') text = v.timerText
+			if (mode === 'TIMER') text = v.stageText ?? v.timerText
 			else if (mode === 'CLOCK') {
 				text = v.clockText
 				color = s.colorWhite
@@ -204,7 +204,7 @@
 			big.textContent = text
 			big.style.color = color
 			bigWrap.style.display = mode === 'BLACK' ? 'none' : ''
-			big.classList.toggle('sd-flash-over', !!(mode === 'TIMER' && v.overtime && s.flashOvertime))
+			big.classList.toggle('sd-flash-over', !!(mode === 'TIMER' && (v.stageOvertime ?? v.overtime) && s.flashOvertime))
 			big.classList.toggle('sd-paused', mode === 'TIMER' && v.state === 'PAUSED')
 
 			// top bar

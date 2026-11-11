@@ -30,7 +30,7 @@ The builds aren't code-signed yet. On Windows, click **More info → Run anyway*
 | Messages (90 characters, flash on arrival) | ✓ | ✓ plus re-flash, quick-message buttons and your own saved messages, and an automatic message when the countdown reaches zero |
 | Display modes Timer / Clock / Black / Test pattern | ✓ | ✓ |
 | Full-screen output on a chosen display (any resolution or portrait) | ✓ | ✓ (automatic = first non-primary display) |
-| Amber/red warning times, white-only mode, stop at zero | ✓ | ✓ with adjustable colours and seconds-level thresholds |
+| Amber/red warning times, white-only mode, stop at zero | ✓ | ✓ with adjustable colours and seconds-level thresholds, plus *hold at zero*: the display stops at 00:00 while overtime is still tracked |
 | Progress bar, clock shown with the timer | ✓ | ✓ plus end time on the output |
 | Background colour, transparent background, brightness | ✓ | ✓ |
 | Hide the output display | ✓ | ✓ |
@@ -62,6 +62,8 @@ CSV import and export use one `name, time` row per speaker. The time can be minu
 Every time a timer runs, the **Run log** tab in the main window records who it was for, when it started, the planned time, how long it actually ran and how much it went over. A run starts when you press Go, and ends when you reset, set a new time, start the next speaker, the timer stops at zero, or you quit. Pauses don't count towards the time it ran. The speaker list also shows what each speaker ran (and any overtime) next to their ✓. **Export CSV…** saves the log for giving notes to presenters. The log is kept between sessions, and **Load default settings** doesn't clear it.
 
 While the timer is in overtime, the main window shows **Over by** with the time over, instead of a negative time remaining.
+
+To keep the overtime from the speaker but still record it, set **Settings → Timer → At zero** to **Hold display at zero, keep tracking overtime**. The output display, web view and UDP displays stay at 00:00, while the main window, Companion and the run log carry on counting the overtime. (**Stop the timer** really stops it, so no overtime is recorded.)
 
 ## Remote-control protocol (TCP 61002)
 

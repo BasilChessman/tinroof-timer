@@ -31,8 +31,23 @@ function formatClock(date, s, withSeconds = s.clockSeconds) {
 	return `${hh}:${pad2(date.getMinutes())}${withSeconds ? ':' + pad2(date.getSeconds()) : ''}${suffix}`
 }
 
+/**
+ * With "hold at zero" the stage outputs show 00:00 in overtime while the engine keeps
+ * counting, so the control window, run log and Companion still see the real overtime.
+ */
+function heldAtZero(snap, s) {
+	return s.atZero === 'hold' && snap.overtime
+}
+
+/** The view as the stage outputs (display, web view, UDP displays) should show it. */
+function stageView(v) {
+	return v.held ? { ...v, seconds: 0, overtime: false, sign: '+', time: '00:00:00' } : v
+}
+
 function buildView(snap, s, now = new Date(), speaker = {}) {
 	const warn = warnLevel(snap, s)
+	const held = heldAtZero(snap, s)
+	const timerText = formatTimer(snap, s)
 	let color = s.colorNormal
 	if (s.whiteOnly) color = s.colorWhite
 	else if (warn === 'AMBER') color = s.colorAmber
@@ -41,7 +56,10 @@ function buildView(snap, s, now = new Date(), speaker = {}) {
 		...snap,
 		warn,
 		color,
-		timerText: formatTimer(snap, s),
+		timerText,
+		held,
+		stageText: held ? formatTimer({ ...snap, seconds: 0, overtime: false }, s) : timerText,
+		stageOvertime: !!snap.overtime && !held,
 		clockText: formatClock(now, s),
 		endText: snap.endTime ? formatClock(new Date(snap.endTime), s) : '',
 		targetText: snap.target ? formatClock(new Date(snap.target), s) : '',
@@ -54,4 +72,4 @@ function buildView(snap, s, now = new Date(), speaker = {}) {
 	}
 }
 
-module.exports = { buildView, warnLevel, formatTimer, formatClock }
+module.exports = { buildView, stageView, warnLevel, formatTimer, formatClock }

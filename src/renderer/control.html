@@ -183,9 +183,15 @@
     <div class="dlg-body">
       <div class="tab" data-tab="timer">
         <label class="row"><input type="checkbox" data-k="alwaysShowHours"> Always show hours</label>
-        <label class="row"><input type="checkbox" data-k="stopAtZero"> Stop at zero (otherwise counts into overtime)</label>
+        <label class="row">At zero
+          <select data-k="atZero">
+            <option value="count">Count into overtime</option>
+            <option value="hold">Hold display at zero, keep tracking overtime</option>
+            <option value="stop">Stop the timer</option>
+          </select>
+        </label>
         <label class="row"><input type="checkbox" data-k="flashOvertime"> Flash timer when overtime</label>
-        <label class="row">Message at zero <input type="text" data-k="zeroMessage" maxlength="90" class="grow" placeholder="e.g. Time is up (leave empty for none)"></label>
+        <div class="row"><label><input type="checkbox" data-k="zeroMessageEnabled"> Message at zero</label> <input type="text" data-k="zeroMessage" maxlength="90" class="grow" placeholder="e.g. Time is up" aria-label="Message at zero"></div>
         <label class="row">Overtime prefix
           <select data-k="overtimeSign"><option value="-">− (minus)</option><option value="+">+ (plus)</option><option value="">none</option></select>
         </label>

@@ -3,7 +3,7 @@ const test = require('node:test')
 const assert = require('node:assert/strict')
 const { TimerEngine, parseDuration } = require('../src/main/timer')
 const { handleCommand, modeLine, splitLines, remoteDisplayPacket, hivePacket } = require('../src/main/protocol')
-const { buildView } = require('../src/main/view')
+const { buildView, stageView } = require('../src/main/view')
 const { DEFAULTS } = require('../src/main/settings')
 
 function rig() {
@@ -225,4 +225,26 @@ test('view warning levels and formatting', () => {
 	assert.equal(v.warn, 'OVER')
 	assert.equal(v.timerText, '-00:10')
 	assert.equal(buildView(e.snapshot(), { ...s, alwaysShowHours: true, overtimeSign: '+' }).timerText, '+00:00:10')
+})
+
+test('hold at zero: stage shows 00:00, engine keeps counting overtime', () => {
+	let t = 0
+	const e = new TimerEngine({ now: () => t })
+	const s = { ...DEFAULTS, atZero: 'hold' }
+	e.reset(3000)
+	e.go()
+	t += 13000
+	const v = buildView(e.snapshot(), s)
+	assert.equal(e.state, 'PLAYING')
+	assert.equal(v.seconds, -10) // real overtime for the control window / Companion
+	assert.equal(v.overtime, true)
+	assert.equal(v.timerText, '-00:10')
+	assert.equal(v.held, true)
+	assert.equal(v.stageText, '00:00')
+	assert.equal(v.stageOvertime, false)
+	assert.equal(remoteDisplayPacket(stageView(v)), 'IDCT:+0000000G0-----')
+	// before zero, and in the other modes, nothing is held
+	assert.equal(buildView(e.snapshot(), { ...s, atZero: 'count' }).stageText, '-00:10')
+	e.reset(3000)
+	assert.equal(buildView(e.snapshot(), s).stageText, '00:03')
 })

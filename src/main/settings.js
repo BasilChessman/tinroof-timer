@@ -15,7 +15,7 @@ const DEFAULTS = Object.freeze({
 	duration: 300,
 	presets: defaultPresets(),
 	alwaysShowHours: false,
-	stopAtZero: false,
+	atZero: 'count', // 'count' into overtime, 'hold' the display at zero but keep counting, or 'stop'
 	amberSeconds: 120, // Irisdown "Amber Time (mins)" — stored in seconds for finer control
 	redSeconds: 60,
 	overtimeSign: '-', // '-', '+', or '' shown before overtime on the display
@@ -25,7 +25,8 @@ const DEFAULTS = Object.freeze({
 	colorRed: '#FF2020',
 	colorWhite: '#FFFFFF',
 	flashOvertime: true,
-	zeroMessage: '', // sent to the output when a countdown reaches zero ('' = off)
+	zeroMessageEnabled: true,
+	zeroMessage: '', // sent to the output when a countdown reaches zero (if enabled and not empty)
 	// Display
 	outputDisplay: 'auto', // 'auto' (first non-primary), 'none', or a display id
 	hideDisplay: false,
@@ -73,6 +74,9 @@ class Settings {
 			const raw = JSON.parse(fs.readFileSync(this.file, 'utf8'))
 			if (raw && raw.settingsVersion === SETTINGS_VERSION) {
 				this.data = { ...structuredClone(DEFAULTS), ...raw }
+				// 1.3 and earlier had a stopAtZero checkbox
+				if (!('atZero' in raw)) this.data.atZero = raw.stopAtZero ? 'stop' : 'count'
+				delete this.data.stopAtZero
 				if (!Array.isArray(this.data.presets) || this.data.presets.length !== 9) this.data.presets = defaultPresets()
 			}
 		} catch {

@@ -199,3 +199,20 @@ test('run log CSV', () => {
 	const csv = toCsv([{ label: 'Smith, Jane', startedAt: at(9, 0), endedAt: at(9, 6, 30), plannedSeconds: 300, ranSeconds: 360, overSeconds: 60 }])
 	assert.equal(csv, 'Speaker,Date,Started,Ended,Planned,Actual,Over\r\n"Smith, Jane",2026-11-10,09:00:00,09:06:30,00:05:00,00:06:00,00:01:00\r\n')
 })
+
+test('settings: old stopAtZero migrates to atZero', () => {
+	const fs = require('node:fs')
+	const os = require('node:os')
+	const path = require('node:path')
+	const { Settings } = require('../src/main/settings')
+	for (const [old, want] of [[true, 'stop'], [false, 'count']]) {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tr-'))
+		fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ settingsVersion: 1, stopAtZero: old, zeroMessage: 'Time is up' }))
+		const s = new Settings(dir)
+		assert.equal(s.data.atZero, want)
+		assert.equal('stopAtZero' in s.data, false)
+		assert.equal(s.data.zeroMessageEnabled, true)
+		assert.equal(s.data.zeroMessage, 'Time is up')
+		fs.rmSync(dir, { recursive: true })
+	}
+})
