@@ -45,18 +45,34 @@
 		let lastFlashSeq = null
 		let msgFitKey = ''
 
-		function fit(elm, box, key, maxFrac) {
-			// scale text so it fills the box width (and doesn't exceed box height * maxFrac)
+		function fit(elm, box, key, maxFrac, center) {
+			// scale text so it fills the box width (and doesn't exceed box height * maxFrac).
+			// With `center`, the text is also shifted so it sits at the vertical centre of the
+			// whole screen rather than of its box (the bars above and below are uneven), and it
+			// is kept small enough to fit there without overlapping them.
 			const w = box.clientWidth
 			const h = box.clientHeight
 			if (!w || !h) return
-			const k = key + '|' + w + 'x' + h
+			const k = key + '|' + w + 'x' + h + '|' + root.clientHeight + '|' + !!center
 			if (k === elm.dataset.fit) return
 			elm.dataset.fit = k
+			let availH = h
+			let shift = 0
+			if (center) {
+				const r = root.getBoundingClientRect()
+				const b = box.getBoundingClientRect()
+				const cy = r.top + r.height / 2
+				const room = 2 * Math.min(cy - b.top, b.bottom - cy)
+				if (room > 0) {
+					availH = room
+					shift = cy - (b.top + b.height / 2)
+				}
+			}
+			elm.style.transform = shift ? `translateY(${shift.toFixed(1)}px)` : ''
 			elm.style.fontSize = '100px'
 			const tw = elm.scrollWidth || 1
 			const th = elm.scrollHeight || 1
-			const size = Math.max(8, Math.min((100 * w * 0.94) / tw, (100 * h * maxFrac) / th))
+			const size = Math.max(8, Math.min((100 * w * 0.94) / tw, (100 * availH * maxFrac) / th))
 			elm.style.fontSize = size.toFixed(1) + 'px'
 		}
 
@@ -225,7 +241,7 @@
 
 			// sizing (only recomputes when text length / box changes)
 			const lenKey = text.replace(/\d/g, '0') + '|' + hasMsg + '|' + mode + '|' + topbar.style.display + '|' + nextLine.style.display + '|' + speakerLine.style.display + '|' + s.fontFamily
-			fit(big, bigWrap, lenKey, 0.92)
+			fit(big, bigWrap, lenKey, 0.92, !hasMsg)
 			if (hasMsg) fitMessage(msgWrap)
 			last = v
 		}
