@@ -28,14 +28,14 @@ The builds aren't code-signed yet. On Windows, click **More info → Run anyway*
 - Messages (90 characters) that flash on arrival, re-flash, quick-message buttons, your own saved messages, and an automatic message when the countdown reaches zero
 - Display modes Timer / Clock / Black / Test pattern
 - Full-screen output on a chosen display, any resolution or portrait (automatic = first non-primary display)
-- Amber/red warning times with adjustable colours and seconds-level thresholds, white-only mode, and at zero: count into overtime, *hold the display at 00:00 while overtime is still tracked*, or stop
+- Amber/red warning times with adjustable colors and seconds-level thresholds, white-only mode, and at zero: count into overtime, *hold the display at 00:00 while overtime is still tracked*, or stop
 - Progress bar, clock and end time on the output
-- Background colour, transparent background, brightness; hide the output display
+- Background color, transparent background, brightness; hide the output display
 - Sounds at set times (negative = overtime)
 - Esc on the output brings up the UI
 - Launch at startup, single instance
 - TCP control on port 61002 (see below) and an HTTP API (`/api/state`, `/api/command?cmd=GO`)
-- UDP remote-display broadcast on port 61003 (`IDCT:` packets) with the display's warning colour and overtime flash
+- UDP remote-display broadcast on port 61003 (`IDCT:` packets) with the display's warning color and overtime flash
 - Web view on port 8181 (`/` live display, `/timer.txt`), discoverable in the Windows Network browser (UPnP/SSDP)
 - Windows and macOS (universal: Intel and Apple Silicon)
 
@@ -91,7 +91,7 @@ The **TinRoof Timer module** is in `companion-module/` and on the release page. 
 
 - Variables: `state`, `mode`, `time`, `time_hm`, `time_h`, `time_m`, `time_s`, `time_signed`, `time_ms`, `time_short`, `remaining_seconds`, `overtime`, `elapsed`, `duration`, `end_time`, `end_time_hm`, `warning`, `progress`, `message`, `message_active`, `stopwatch`, `target_time`, `countdown_to_time`, `speaker_name`, `speaker_number`, `next_speaker_name`, `next_speaker_number`, `speaker_count`, `connected`, plus `speaker_<n>_name`, `speaker_<n>_time` and `speaker_<n>_done` for every speaker in the list (at least 20)
 - Actions: go, pause, reset, jog, display mode, messages, set duration and start, jog in seconds, load preset, flash message, count down to a time of day, start or cue a speaker by number, next and previous speaker, custom command
-- Feedbacks: warning level, traffic-light colours, overtime, counting to a time of day, speaker is current, next or done
+- Feedbacks: warning level, traffic-light colors, overtime, counting to a time of day, speaker is current, next or done
 - 86 presets, including 20 speaker buttons that show each speaker's name and time and light up when that speaker is live
 
 To install it, download `tinroof-timer-companion-module-<version>.tgz` from the release (or build it with `cd companion-module && npm install && npm run package`), then import it in Companion under *Modules → Import module package*.
@@ -114,7 +114,7 @@ The builds are **not code-signed**. On macOS, right-click the app and choose *Op
 src/main/timer.js      timer engine (pure, unit-tested)
 src/main/protocol.js   command parser and UDP packet builder
 src/main/network.js    TCP server, UDP broadcast, HTTP web view/API, SSDP
-src/main/view.js       formatting, colours, warning levels
+src/main/view.js       formatting, colors, warning levels
 src/main/main.js       Electron windows, menus, IPC, settings, sounds
 src/renderer/          control UI, output window, web view (shared display.js)
 companion-module/      Bitfocus Companion module

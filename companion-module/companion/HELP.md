@@ -15,8 +15,8 @@ Next / previous speaker · Custom command
 Commands the timer rejects or ignores are noted in the connection's log.
 
 ## Feedbacks
-State colours (running / paused) · State is… · Display mode is… · Message on screen ·
-Warning level is… · Traffic-light colours by warning level · Overtime · Counting down to a time of day ·
+State colors (running / paused) · State is… · Display mode is… · Message on screen ·
+Warning level is… · Traffic-light colors by warning level · Overtime · Counting down to a time of day ·
 Speaker is current / next / done
 
 ## Variables
