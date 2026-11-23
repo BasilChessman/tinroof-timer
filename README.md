@@ -8,10 +8,10 @@ A countdown timer for show operators that runs on Windows and macOS. It comes wi
 
 | Platform | File |
 |---|---|
-| Windows installer (recommended) | [TinRoof-Timer-Setup-1.5.0.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.5.0/TinRoof-Timer-Setup-1.5.0.exe) |
-| Windows portable (no install) | [TinRoof-Timer-1.5.0-Portable.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.5.0/TinRoof-Timer-1.5.0-Portable.exe) |
-| macOS (Apple Silicon and Intel) | [TinRoof-Timer-1.5.0-macOS-Universal.dmg](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.5.0/TinRoof-Timer-1.5.0-macOS-Universal.dmg) |
-| Bitfocus Companion module (optional) | [tinroof-timer-companion-module-1.5.0.tgz](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.5.0/tinroof-timer-companion-module-1.5.0.tgz) |
+| Windows installer (recommended) | [TinRoof-Timer-Setup-1.5.1.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.5.1/TinRoof-Timer-Setup-1.5.1.exe) |
+| Windows portable (no install) | [TinRoof-Timer-1.5.1-Portable.exe](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.5.1/TinRoof-Timer-1.5.1-Portable.exe) |
+| macOS (Apple Silicon and Intel) | [TinRoof-Timer-1.5.1-macOS-Universal.dmg](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.5.1/TinRoof-Timer-1.5.1-macOS-Universal.dmg) |
+| Bitfocus Companion module (optional) | [tinroof-timer-companion-module-1.5.1.tgz](https://github.com/BasilChessman/tinroof-timer/releases/download/v1.5.1/tinroof-timer-companion-module-1.5.1.tgz) |
 
 The builds aren't code-signed yet. On Windows, click **More info → Run anyway** the first time. On a Mac, right-click the app and choose **Open**. The [release notes](https://github.com/BasilChessman/tinroof-timer/releases/latest) explain which file to pick.
 

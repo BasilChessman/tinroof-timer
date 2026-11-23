@@ -1,6 +1,6 @@
 'use strict'
 // Turns an engine snapshot + settings into what every output shows:
-// the formatted timer text, its colour and the warning level.
+// the formatted timer text, its color and the warning level.
 const { pad2 } = require('./timer')
 
 function warnLevel(snap, s) {

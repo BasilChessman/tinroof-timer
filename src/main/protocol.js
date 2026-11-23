@@ -206,8 +206,8 @@ function splitLines(buffer) {
 
 /**
  * Remote-display packet (UDP 61003), 20 ASCII chars:
- * "IDCT:" + sign + 6-digit seconds + hex timer id + colour + blink + "-----".
- * Follows the main display: colour G/A/R by warning level (W for white-only or the clock),
+ * "IDCT:" + sign + 6-digit seconds + hex timer id + color + blink + "-----".
+ * Follows the main display: color G/A/R by warning level (W for white-only or the clock),
  * blink 1 while the main display flashes in overtime, and hold at zero applies.
  * In CLOCK mode the seconds field carries the time of day (h*3600 + m*60).
  * @param {object} view - from buildView()

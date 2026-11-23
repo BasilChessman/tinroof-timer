@@ -742,7 +742,7 @@ $('btnSpkImport').onclick = async () => {
 		list = [...settings.speakers, ...list]
 	}
 	saveSpeakers(list)
-	if (r.errors.length) alert(`Skipped line(s) ${r.errors.join(', ')}: time not recognised.`)
+	if (r.errors.length) alert(`Skipped line(s) ${r.errors.join(', ')}: time not recognized.`)
 }
 $('btnSpkExport').onclick = () => api.exportSpeakers()
 $('btnSpkDeleteAll').onclick = () => {

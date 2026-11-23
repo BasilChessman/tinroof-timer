@@ -47,7 +47,7 @@
 
 		function fit(elm, box, key, maxFrac, center) {
 			// scale text so it fills the box width (and doesn't exceed box height * maxFrac).
-			// With `center`, the text is also shifted so it sits at the vertical centre of the
+			// With `center`, the text is also shifted so it sits at the vertical center of the
 			// whole screen rather than of its box (the bars above and below are uneven), and it
 			// is kept small enough to fit there without overlapping them.
 			const w = box.clientWidth
@@ -112,7 +112,7 @@
 			c.scale(dpr, dpr)
 			c.fillStyle = '#000'
 			c.fillRect(0, 0, w, h)
-			// colour bars
+			// color bars
 			const bars = ['#c0c0c0', '#c0c000', '#00c0c0', '#00c000', '#c000c0', '#c00000', '#0000c0']
 			const bw = w / bars.length
 			bars.forEach((col, i) => {

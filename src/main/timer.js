@@ -16,7 +16,7 @@ function pad2(n) {
 /** Whole seconds shown for a remaining-ms value (counts "up" through each second like a stage clock). */
 function displaySeconds(ms) {
 	const s = Math.ceil(ms / 1000)
-	return s === 0 ? 0 : s // normalise -0
+	return s === 0 ? 0 : s // normalize -0
 }
 
 /** hh:mm:ss of an absolute number of seconds. */
@@ -345,7 +345,7 @@ class TimerEngine extends EventEmitter {
 		return true
 	}
 
-	// ---- serialisable snapshot -----------------------------------------
+	// ---- serializable snapshot -----------------------------------------
 	snapshot() {
 		const remaining = this.remainingMs() // may trigger stop-at-zero first
 		const secs = this.seconds()
